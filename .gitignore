@@ -1,0 +1,44 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+*.swp
+*.swo
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+.virtualenv/
+
+# IDE
+.vscode/
+.idea/
+
+# Project specific
+dataset/visualizations_all/
+*.pth
+*.pt
+results*.json
+temp/
+test_images/
+output/
+
+# Model weights (large files)
+models/weights/*.pth
+*.pkl
+*.h5
+
+# Temporary files
+*.tmp
+*.temp
+*~
