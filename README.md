@@ -19,16 +19,17 @@
 Our advanced confusion matrix analysis provides detailed insights into system performance with **96.5% accuracy**:
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/f34761cc-db21-4c4f-8f31-26ecd0c24cd5" alt="Confusion Matrix v2.0" width="800"/>
+  <img src="https://github.com/user-attachments/assets/a93b7355-0fcd-4d40-9138-37fba676d07b" alt="Confusion Matrix v2.0" width="800"/>
   <br/>
   <em>Professional confusion matrix visualization showing excellent performance with only 2.4% error rate</em>
 </div>
 
+
 **Key Insights from Confusion Matrix:**
 - **True Negatives (450):** Perfect rejection of different signatures (99.6% security)
 - **True Positives (106):** Excellent acceptance of authentic signatures (85.5% success)
-- **False Positives (2):** Minimal security risk (0.4% only!)
-- **False Negatives (18):** Low user friction (14.5% secondary verification needed)
+- **False Positives (2):** Minimal security risk 
+- **False Negatives (18):** Low user friction 
 
 ### 📈 Threshold Optimization Analysis v2.0
 Comprehensive threshold analysis revealing **0.30 as optimal threshold** for maximum accuracy:
@@ -171,6 +172,7 @@ graph TD
 3. Commit your changes 
 4. Push to the branch 
 5. Open a Pull Request
+   
 *Star ⭐ this repository if you found it helpful!*
 
 ## References
