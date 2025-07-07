@@ -13,7 +13,7 @@ import os
 base_dir = r"C:\\Users\\gulme\\OneDrive\\Desktop\\dataset"
 json_path = os.path.join(base_dir, "results2.json")
 
-print("📊 Loading optimized JSON data (Threshold 0.30)...")
+print("Loading optimized JSON data (Threshold 0.30)...")
 with open(json_path, "r", encoding="utf-8") as f:
     results = json.load(f)
 
@@ -35,12 +35,12 @@ precision = tp / (tp + fp) if (tp + fp) > 0 else 0
 recall = tp / (tp + fn) if (tp + fn) > 0 else 0
 f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
 
-print("\n🎯 Optimized Confusion Matrix Results (Threshold 0.30):")
+print("\nOptimized Confusion Matrix Results (Threshold 0.30):")
 print(f"True Negatives (TN): {tn}")
 print(f"False Positives (FP): {fp}")
 print(f"False Negatives (FN): {fn}")
 print(f"True Positives (TP): {tp}")
-print(f"\n📈 Performance Metrics:")
+print(f"\nPerformance Metrics:")
 print(f"Accuracy: {accuracy:.3f} ({accuracy*100:.1f}%)")
 print(f"Precision: {precision:.3f} ({precision*100:.1f}%)")
 print(f"Recall: {recall:.3f} ({recall*100:.1f}%)")
@@ -75,10 +75,10 @@ plt.tight_layout()
 # Save visualization
 viz_path = os.path.join(base_dir, "confusion_matrix_v2.png")
 plt.savefig(viz_path, dpi=300, bbox_inches='tight', facecolor='white')
-print(f"\n💾 Optimized confusion matrix saved: {viz_path}")
+print(f"\nOptimized confusion matrix saved: {viz_path}")
 
 # Threshold analysis with different threshold values
-print("\n🔍 Advanced Threshold Analysis:")
+print("\nAdvanced Threshold Analysis:")
 thresholds = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40]
 threshold_results = []
 
@@ -135,14 +135,14 @@ plt.ylim(0.85, 1.0)
 # Save threshold analysis
 thresh_path = os.path.join(base_dir, "threshold_analysis_v2.png")
 plt.savefig(thresh_path, dpi=300, bbox_inches='tight', facecolor='white')
-print(f"💾 Optimized threshold analysis saved: {thresh_path}")
+print(f"Optimized threshold analysis saved: {thresh_path}")
 
 plt.show()
 
 # Detailed performance report
-print(f"\n📋 Detailed Performance Report:")
+print(f"\nDetailed Performance Report:")
 print("="*50)
-print(f"🎯 OPTIMIZED SYSTEM PERFORMANCE (Threshold 0.30)")
+print(f"OPTIMIZED SYSTEM PERFORMANCE (Threshold 0.30)")
 print("="*50)
 print(classification_report(y_true, y_pred, target_names=['Different Person', 'Same Person']))
 
@@ -159,13 +159,13 @@ try:
     old_accuracy = (old_tp + old_tn) / (old_tp + old_tn + old_fp + old_fn)
     
     improvement = (accuracy - old_accuracy) * 100
-    print(f"\n🚀 IMPROVEMENT ANALYSIS:")
+    print(f"\nIMPROVEMENT ANALYSIS:")
     print(f"Previous Accuracy (0.10): {old_accuracy:.3f} ({old_accuracy*100:.1f}%)")
     print(f"Current Accuracy (0.30): {accuracy:.3f} ({accuracy*100:.1f}%)")
-    print(f"Performance Improvement: +{improvement:.1f} percentage points! 📈")
+    print(f"Performance Improvement: +{improvement:.1f} percentage points!")
     
 except:
-    print(f"\n⚠️ Previous results.json not found, comparison unavailable.")
+    print(f"\nPrevious results.json not found, comparison unavailable.")
 
-print("\n✅ Advanced analysis completed! 🎉")
-print("🎨 Enhanced with new color schemes and professional visualizations!")
+print("\nAdvanced analysis completed!")
+print("Enhanced with new color schemes and professional visualizations!")
