@@ -62,7 +62,18 @@ plt.xlabel('Predicted Label', fontweight='bold')
 # Second subplot: Normalized Confusion Matrix (percentages) - Purple theme
 plt.subplot(1, 2, 2)
 cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-sns.heatmap(cm_normalized, annot=True, fmt='.2f', cmap='Purples',
+# Create custom annotations to show small values properly
+annot_array = []
+for i in range(cm_normalized.shape[0]):
+    row = []
+    for j in range(cm_normalized.shape[1]):
+        if cm_normalized[i, j] < 0.01:
+            row.append(f'{cm_normalized[i, j]:.3f}')  # 3 decimal places for small values
+        else:
+            row.append(f'{cm_normalized[i, j]:.2f}')
+    annot_array.append(row)
+
+sns.heatmap(cm_normalized, annot=annot_array, fmt='', cmap='Purples',
             xticklabels=['Predicted: Different', 'Predicted: Same'],
             yticklabels=['Actual: Different', 'Actual: Same'],
             cbar_kws={'label': 'Percentage'})
