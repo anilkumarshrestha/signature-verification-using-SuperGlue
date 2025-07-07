@@ -17,7 +17,7 @@ matching = Matching(config).to(device).eval()
 base_dir  = r"C:\\Users\\gulme\\OneDrive\\Desktop\\dataset"
 orig_root = os.path.join(base_dir, "original")
 proc_root = os.path.join(base_dir, "processed")
-viz_root  = os.path.join(base_dir, "visualizations_all")
+viz_root  = os.path.join(base_dir, "visualizations_all2")  # Yeni görselleştirme klasörü
 os.makedirs(viz_root, exist_ok=True)
 
 threshold = 0.30  # Optimized threshold from confusion matrix analysis
@@ -60,24 +60,27 @@ def match_and_draw(im1, im2, save_path, orig_folder, proc_folder, threshold):
     is_same_person = orig_folder == proc_folder
     predicted_same = ratio >= threshold
     
-    # Metin ayarları - daha büyük ve belirgin
+    # Metin ayarları - ince ve zarif
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 0.6
-    thickness = 2
+    font_scale = 0.5  # Küçük font
+    thickness = 1
+    outline_thickness = 1  # İnce kontur
     
-    # Sol tarafta orta yerde konumlandır (y=150 civarından başla)
-    start_y = 150
-    line_spacing = 25
+    # Sol üstte konumlandır - kompakt alan
+    start_y = 25
+    line_spacing = 20
     
-    # Siyah arka plan kutusu ekle (daha iyi okunabilirlik)
-    overlay = vis.copy()
-    cv2.rectangle(overlay, (5, start_y-20), (350, start_y+80), (0, 0, 0), -1)
-    vis = cv2.addWeighted(vis, 0.7, overlay, 0.3, 0)
+    # Basit, ince yazı fonksiyonu
+    def draw_text_with_outline(img, text, position, font, scale, color, thickness, outline_color=(0, 0, 0)):
+        # Önce siyah kontur (ince)
+        cv2.putText(img, text, position, font, scale, outline_color, thickness + 1, cv2.LINE_AA)
+        # Sonra ana renk (ince)
+        cv2.putText(img, text, position, font, scale, color, thickness, cv2.LINE_AA)
     
-    # Başlık bilgileri - yüzde olarak
+    # Başlık bilgileri - ince ve temiz
     ratio_percent = ratio * 100
     info_text = f"Match: {ratio_percent:.1f}% ({valid}/{total})"
-    cv2.putText(vis, info_text, (10, start_y), font, font_scale, (255, 255, 255), thickness)
+    draw_text_with_outline(vis, info_text, (10, start_y), font, font_scale, (0, 255, 255), thickness)  # Cyan
     
     # Ground Truth vs Prediction
     gt_text = f"GT: {'SAME' if is_same_person else 'DIFFERENT'}"
@@ -87,12 +90,12 @@ def match_and_draw(im1, im2, save_path, orig_folder, proc_folder, threshold):
     correct_prediction = is_same_person == predicted_same
     color = (0, 255, 0) if correct_prediction else (0, 0, 255)  # BGR format
     
-    cv2.putText(vis, gt_text, (10, start_y + line_spacing), font, font_scale, (255, 255, 255), thickness)
-    cv2.putText(vis, pred_text, (10, start_y + 2*line_spacing), font, font_scale, color, thickness)
+    draw_text_with_outline(vis, gt_text, (10, start_y + line_spacing), font, font_scale, (255, 255, 255), thickness)
+    draw_text_with_outline(vis, pred_text, (10, start_y + 2*line_spacing), font, font_scale, color, thickness)
     
-    # Doğruluk durumu
+    # Doğruluk durumu - ince
     accuracy_text = f"Result: {'CORRECT' if correct_prediction else 'WRONG'}"
-    cv2.putText(vis, accuracy_text, (10, start_y + 3*line_spacing), font, font_scale, color, thickness+1)
+    draw_text_with_outline(vis, accuracy_text, (10, start_y + 3*line_spacing), font, font_scale, color, thickness)
 
     # Kaydet
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -151,7 +154,7 @@ for fo in sorted(orig_folders, key=int):
                 print(f"[{fo}/{fn_o}] vs [{fp}/{fn_p}] r={ratio:.3f}")
 
 # 5) JSON'a yaz
-out_json = os.path.join(base_dir, "results2.json")  # Yeni threshold sonuçları
+out_json = os.path.join(base_dir, "results3.json")  # Yeni threshold sonuçları
 with open(out_json, "w", encoding="utf-8") as f:
     json.dump(results, f, indent=2, ensure_ascii=False)
 

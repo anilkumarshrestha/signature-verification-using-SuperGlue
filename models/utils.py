@@ -522,23 +522,24 @@ def make_matching_plot_fast(image0, image1, kpts0, kpts1, mkpts0,
     # Scale factor for consistent visualization across scales.
     sc = min(H / 640., 2.0)
 
-    # Big text.
-    Ht = int(30 * sc)  # text height
-    txt_color_fg = (255, 255, 255)
-    txt_color_bg = (0, 0, 0)
+    # Big text - enhanced visibility
+    Ht = int(35 * sc)  # Increased text height
+    txt_color_fg = (255, 255, 255)  # White foreground
+    txt_color_bg = (0, 0, 0)        # Black background
     for i, t in enumerate(text):
+        # Thicker black outline for better visibility
         cv2.putText(out, t, (int(8*sc), Ht*(i+1)), cv2.FONT_HERSHEY_DUPLEX,
-                    1.0*sc, txt_color_bg, 2, cv2.LINE_AA)
+                    1.2*sc, txt_color_bg, 4, cv2.LINE_AA)  # Increased scale and thickness
         cv2.putText(out, t, (int(8*sc), Ht*(i+1)), cv2.FONT_HERSHEY_DUPLEX,
-                    1.0*sc, txt_color_fg, 1, cv2.LINE_AA)
+                    1.2*sc, txt_color_fg, 2, cv2.LINE_AA)  # Increased scale and thickness
 
-    # Small text.
-    Ht = int(18 * sc)  # text height
+    # Small text - enhanced visibility
+    Ht = int(22 * sc)  # Increased text height
     for i, t in enumerate(reversed(small_text)):
         cv2.putText(out, t, (int(8*sc), int(H-Ht*(i+.6))), cv2.FONT_HERSHEY_DUPLEX,
-                    0.5*sc, txt_color_bg, 2, cv2.LINE_AA)
+                    0.7*sc, txt_color_bg, 3, cv2.LINE_AA)  # Increased scale and thickness
         cv2.putText(out, t, (int(8*sc), int(H-Ht*(i+.6))), cv2.FONT_HERSHEY_DUPLEX,
-                    0.5*sc, txt_color_fg, 1, cv2.LINE_AA)
+                    0.7*sc, txt_color_fg, 1, cv2.LINE_AA)  # Increased scale
 
     if path is not None:
         cv2.imwrite(str(path), out)
