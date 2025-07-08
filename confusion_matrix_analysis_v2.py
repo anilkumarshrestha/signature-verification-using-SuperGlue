@@ -1,6 +1,5 @@
 # confusion_matrix_analysis_v2.py
-# Advanced confusion matrix analysis for signature verification system
-# Optimized threshold analysis with enhanced visualizations
+# Optimized threshold analysis
 
 import json
 import numpy as np
@@ -9,11 +8,11 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report
 import os
 
-# Load JSON results file (New optimized threshold results)
+# Load JSON results file (optimized threshold results)
 base_dir = r"C:\\Users\\gulme\\OneDrive\\Desktop\\dataset"
 json_path = os.path.join(base_dir, "results2.json")
 
-print("Loading optimized JSON data (Threshold 0.30)...")
+print("Loading JSON data...")
 with open(json_path, "r", encoding="utf-8") as f:
     results = json.load(f)
 
@@ -49,7 +48,7 @@ print(f"F1-Score: {f1_score:.3f} ({f1_score*100:.1f}%)")
 # Visualize confusion matrix with new color schemes
 plt.figure(figsize=(14, 6))
 
-# First subplot: Confusion Matrix (counts) - Orange theme
+# First subplot: Confusion Matrix (counts)
 plt.subplot(1, 2, 1)
 sns.heatmap(cm, annot=True, fmt='d', cmap='Oranges', 
             xticklabels=['Predicted: Different', 'Predicted: Same'],
@@ -59,7 +58,7 @@ plt.title('Confusion Matrix v2.0 (Counts)\nThreshold = 0.30', fontsize=14, fontw
 plt.ylabel('True Label', fontweight='bold')
 plt.xlabel('Predicted Label', fontweight='bold')
 
-# Second subplot: Normalized Confusion Matrix (percentages) - Purple theme
+# Second subplot: Normalized Confusion Matrix (percentages) 
 plt.subplot(1, 2, 2)
 cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
 # Create custom annotations to show small values properly
@@ -68,7 +67,7 @@ for i in range(cm_normalized.shape[0]):
     row = []
     for j in range(cm_normalized.shape[1]):
         if cm_normalized[i, j] < 0.01:
-            row.append(f'{cm_normalized[i, j]:.3f}')  # 3 decimal places for small values
+            row.append(f'{cm_normalized[i, j]:.3f}')  
         else:
             row.append(f'{cm_normalized[i, j]:.2f}')
     annot_array.append(row)
@@ -112,7 +111,7 @@ for thresh in thresholds:
 
 # Find optimal threshold
 best_threshold = max(threshold_results, key=lambda x: x['accuracy'])
-print(f"\n🏆 Optimal threshold: {best_threshold['threshold']:.2f} (Accuracy: {best_threshold['accuracy']:.3f})")
+print(f"\nOptimal threshold: {best_threshold['threshold']:.2f} (Accuracy: {best_threshold['accuracy']:.3f})")
 
 # Threshold vs Accuracy visualization - NEW DESIGN!
 plt.figure(figsize=(12, 7))
@@ -150,33 +149,9 @@ print(f"Optimized threshold analysis saved: {thresh_path}")
 
 plt.show()
 
-# Detailed performance report
-print(f"\nDetailed Performance Report:")
+# Performance report
+print(f"\nPerformance Report:")
 print("="*50)
-print(f"OPTIMIZED SYSTEM PERFORMANCE (Threshold 0.30)")
+print(f"SYSTEM PERFORMANCE ANALYSIS")
 print("="*50)
 print(classification_report(y_true, y_pred, target_names=['Different Person', 'Same Person']))
-
-# Calculate improvement (compare with old results.json)
-try:
-    old_json_path = os.path.join(base_dir, "results.json")
-    with open(old_json_path, "r", encoding="utf-8") as f:
-        old_results = json.load(f)
-    
-    old_y_true = [r["ground_truth_same"] for r in old_results]
-    old_y_pred = [r["predicted_same"] for r in old_results]
-    old_cm = confusion_matrix(old_y_true, old_y_pred)
-    old_tn, old_fp, old_fn, old_tp = old_cm.ravel()
-    old_accuracy = (old_tp + old_tn) / (old_tp + old_tn + old_fp + old_fn)
-    
-    improvement = (accuracy - old_accuracy) * 100
-    print(f"\nIMPROVEMENT ANALYSIS:")
-    print(f"Previous Accuracy (0.10): {old_accuracy:.3f} ({old_accuracy*100:.1f}%)")
-    print(f"Current Accuracy (0.30): {accuracy:.3f} ({accuracy*100:.1f}%)")
-    print(f"Performance Improvement: +{improvement:.1f} percentage points!")
-    
-except:
-    print(f"\nPrevious results.json not found, comparison unavailable.")
-
-print("\nAdvanced analysis completed!")
-print("Enhanced with new color schemes and professional visualizations!")
