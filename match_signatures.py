@@ -10,7 +10,9 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 config = {
     'superpoint': dict(nms_radius=4, keypoint_threshold=0.005, max_keypoints=1024),
     'superglue':    dict(weights='indoor', sinkhorn_iterations=20, match_threshold=0.2)
-}
+} # nms_radius=4:sadece en güçlü keypoint'i tutar
+  # keypoint_threshold=0.005:Zayıf/belirsiz keypoint'leri elemek,0.005'den düşük güven skoruna sahip keypoint'leri yok sayar
+  # max_keypoints=1024:maksimum keypoint sayısı
 matching = Matching(config).to(device).eval()
 
 # 2) Klasör yolları
