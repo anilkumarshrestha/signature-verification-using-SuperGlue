@@ -2,18 +2,8 @@
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://python.org)
 [![PyTorch](https://img.shields.io/badge/PyTorch-Latest-red.svg)](https://pytorch.org)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
 
 **AI-powered signature verification system achieving 96.5% accuracy with state-of-the-art SuperGlue technology.**
-
-## Key Features
-
-- **96.5% Accuracy** - Exceeds industry standards
-- **Real-time Processing** - Results in under 1 second  
-- **Bank-grade Security** - 99.6% fraud detection rate
-- **Production Ready** - Comprehensive testing completed
-- **Advanced Analytics** - Detailed performance monitoring
 
 ### Confusion Matrix Analysis v2.0
 Our advanced confusion matrix analysis provides detailed insights into system performance with **96.5% accuracy**:
@@ -26,10 +16,10 @@ Our advanced confusion matrix analysis provides detailed insights into system pe
 
 
 **Key Insights from Confusion Matrix:**
-- **True Negatives (450):** Perfect rejection of different signatures (99.6% security)
-- **True Positives (106):** Excellent acceptance of authentic signatures (85.5% success)
-- **False Positives (2):** Minimal security risk 
-- **False Negatives (18):** Low user friction 
+- **True Negatives (450):** Rejection of different signatures (99.6% security)
+- **True Positives (106):** Acceptance of authentic signatures (85.5% success)
+- **False Positives (2)**  
+- **False Negatives (18)**
 
 ### 📈 Threshold Optimization Analysis v2.0
 Comprehensive threshold analysis revealing **0.30 as optimal threshold** for maximum accuracy:
@@ -39,17 +29,6 @@ Comprehensive threshold analysis revealing **0.30 as optimal threshold** for max
   <br/>
   <em>Advanced threshold optimization showing peak performance at 0.30 threshold with 96.5% accuracy</em>
 </div>
-
-**Threshold Performance Analysis:**
-- 🟢 **0.05-0.15:** Lower security, higher acceptance (88.9%-91.8%)
-- 🟡 **0.20-0.25:** Balanced performance (95.0%-96.0%)
-- 🏆 **0.30:** **OPTIMAL** - Peak accuracy (96.5%)
-- 🔴 **0.35-0.40:** Higher security, lower acceptance (95.7%-96.2%)ttps://img.shields.io/badge/PyTorch-Latest-red.svg)](https://pytorch.org)
-
-A Python toolkit for pairwise signature matching using [SuperPoint](https://arxiv.org/abs/1712.07629) + [SuperGlue](https://arxiv.org/abs/1911.11763).  
-It generates a JSON of match predictions for all signature pairs in your dataset, then visualizes results for inspection.
-
-**AI-powered signature verification system achieving 96.5% accuracy with state-of-the-art SuperGlue technology.**
 
 ## 📈 Performance Metrics
 
@@ -116,21 +95,7 @@ The system includes comprehensive analysis tools:
 
 ### Detailed Performance Metrics
 ```
-🎯 SYSTEM PERFORMANCE (Threshold 0.30) - REAL RESULTS
-========================================================
-Total Test Cases:     576 signature pairs
-✅ Accuracy:          96.5% (556/576 correct)
-✅ Precision:         85.5% (106/124 predicted positives)
-✅ Recall:            85.5% (106/124 actual positives)  
-✅ F1-Score:          85.5% (Perfect precision-recall balance)
-
-🔒 SECURITY BREAKDOWN:
-✅ True Negatives:    450/452 (99.6% fraud rejection)
-❌ False Positives:   2/452 (0.4% security risk)
-✅ True Positives:    106/124 (85.5% authentic acceptance)
-❌ False Negatives:   18/124 (14.5% require manual review)
-
-🏆 CLASSIFICATION MATRIX:
+CLASSIFICATION MATRIX:
                  Predicted
                  Different | Same
 Actual Different    450   |   2    (99.6% specificity)
@@ -176,6 +141,8 @@ graph TD
 *Star ⭐ this repository if you found it helpful!*
 
 ## References
+A Python toolkit for pairwise signature matching using [SuperPoint](https://arxiv.org/abs/1712.07629) + [SuperGlue](https://arxiv.org/abs/1911.11763).  
+It generates a JSON of match predictions for all signature pairs in your dataset, then visualizes results for inspection.
 
 * **SuperGlue Pretrained Network** (Matching backbone):
   [https://github.com/magicleap/SuperGluePretrainedNetwork](https://github.com/magicleap/SuperGluePretrainedNetwork)
