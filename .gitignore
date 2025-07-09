@@ -26,15 +26,15 @@ ENV/
 
 # Project specific
 dataset/visualizations_all/
-*.pth
-*.pt
+# *.pth  # Commented out to allow weight files
+# *.pt   # Commented out to allow weight files
 results*.json
 temp/
 test_images/
 output/
 
-# Model weights (large files)
-models/weights/*.pth
+# Model weights (large files) - commented out to allow upload
+# models/weights/*.pth
 *.pkl
 *.h5
 
