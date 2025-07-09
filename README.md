@@ -9,7 +9,7 @@
 Our advanced confusion matrix analysis provides detailed insights into system performance with **98.1% accuracy**:
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/NEW_CONFUSION_MATRIX_URL" alt="Signature Recognition System Confusion Matrix" width="800"/>
+  <img src="https://github.com/user-attachments/assets/cddf785e-0b67-4ac7-b842-9ef9d0ab8ab6" alt="Signature Recognition System Confusion Matrix" width="800"/>
   <br/>
   <em>Signature Recognition System confusion matrix with 1.9% error rate</em>
 </div>
