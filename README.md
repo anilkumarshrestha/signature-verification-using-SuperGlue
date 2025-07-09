@@ -3,23 +3,22 @@
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://python.org)
 [![PyTorch](https://img.shields.io/badge/PyTorch-Latest-red.svg)](https://pytorch.org)
 
-**AI-powered signature verification system achieving 96.5% accuracy with state-of-the-art SuperGlue technology.**
+**AI-powered signature verification system achieving 98.1% accuracy with state-of-the-art SuperGlue technology.**
 
-### Confusion Matrix Analysis v2.0
-Our advanced confusion matrix analysis provides detailed insights into system performance with **96.5% accuracy**:
+### Confusion Matrix Analysis - Signature Recognition System
+Our advanced confusion matrix analysis provides detailed insights into system performance with **98.1% accuracy**:
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/a93b7355-0fcd-4d40-9138-37fba676d07b" alt="Confusion Matrix v2.0" width="800"/>
+  <img src="https://github.com/user-attachments/assets/NEW_CONFUSION_MATRIX_URL" alt="Signature Recognition System Confusion Matrix" width="800"/>
   <br/>
-  <em>Professional confusion matrix visualization showing excellent performance with only 2.4% error rate</em>
+  <em>Signature Recognition System confusion matrix with 1.9% error rate</em>
 </div>
 
-
 **Key Insights from Confusion Matrix:**
-- **True Negatives (450):** Rejection of different signatures (99.6% security)
-- **True Positives (106):** Acceptance of authentic signatures (85.5% success)
-- **False Positives (2)**  
-- **False Negatives (18)**
+- **True Negatives (450):** Rejection of different signatures 
+- **True Positives (115):** Acceptance of authentic signatures 
+- **False Positives (2):** Minimal false acceptances 
+- **False Negatives (9):** Low false rejections 
 
 ### 📈 Threshold Optimization Analysis v2.0
 Comprehensive threshold analysis revealing **0.30 as optimal threshold** for maximum accuracy:
@@ -27,20 +26,19 @@ Comprehensive threshold analysis revealing **0.30 as optimal threshold** for max
 <div align="center">
   <img src="https://github.com/user-attachments/assets/3df8dd21-6389-4317-860e-d023ed3f37b5" alt="Threshold Optimization v2.0" width="800"/>
   <br/>
-  <em>Advanced threshold optimization showing peak performance at 0.30 threshold with 96.5% accuracy</em>
+  <em>Advanced threshold optimization showing peak performance at 0.30 threshold with 98.1% accuracy</em>
 </div>
 
 ## 📈 Performance Metrics
 
-| Metric | Value | Industry Standard | 
-|--------|-------|------------------|
-| **Overall Accuracy** | **96.5%** | 85-95% | 
-| **Precision** | **85.5%** | >80% | 
-| **Recall** | **85.5%** | >80% | 
-| **F1-Score** | **85.5%** | >0.80 | 
-| **False Positive Rate** | **0.4%** | <2% | 
-| **False Negative Rate** | **14.5%** | <20% |
-| **Security Level** | **99.6%** | >95% | 
+| Metric | Value | 
+|--------|-------|
+| **Overall Accuracy** | **98.1%** |
+| **Precision** | **98.3%** |
+| **Recall** | **92.7%** | 
+| **F1-Score** | **95.4%** |
+| **False Positive Rate** | 
+| **False Negative Rate** | 
 
 ## 🚀 Quick Start
 
@@ -82,7 +80,6 @@ print(f"Verification: {'VALID' if result['is_match'] else 'INVALID'}")
 └── requirements.txt      
 ```
 ```
-
 ```
 ## 📊 Visual Analysis
 
@@ -99,18 +96,7 @@ CLASSIFICATION MATRIX:
                  Predicted
                  Different | Same
 Actual Different    450   |   2    (99.6% specificity)
-Actual Same          18   |  106   (85.5% sensitivity)
-```
-
-### System Architecture Overview
-```mermaid
-graph TD
-    A[Input: Signature Images] --> B[SuperPoint: Keypoint Detection]
-    B --> C[SuperGlue: Feature Matching]
-    C --> D[Confidence Scoring 0.0-1.0]
-    D --> E[Threshold Analysis ≥0.30]
-    E --> F[Decision: Valid / Invalid]
-    F --> G[Visual Output + Analytics]
+Actual Same           9   |  115   (92.7% sensitivity)
 ```
 
 ### � Sample Verification Results
