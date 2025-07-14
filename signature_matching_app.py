@@ -255,13 +255,54 @@ def rotate_image(image, angle):
     rotated = cv2.warpAffine(image, M, (w, h))
     return rotated
 
+def calculate_security_score(results_by_angle, final_result):
+    """Calculate advanced security score to detect potential forgeries"""
+    
+    # Base metrics
+    ratio = final_result['ratio']
+    valid_matches = final_result['valid']
+    total_kpts = final_result['total']
+    
+    # 1. Quality over quantity check
+    if valid_matches > 0:
+        quality_score = min(1.0, valid_matches / max(total_kpts * 0.1, 1))  # Ideal: 10% strong matches
+    else:
+        quality_score = 0.0
+    
+    # 2. Suspicious pattern detection
+    suspicious_penalty = 0.0
+    
+    # Too many matches might indicate forgery attempt
+    if ratio > 0.15 and valid_matches > 30:
+        suspicious_penalty += 0.2  # High match count penalty
+    
+    # Multiple angles with similar high ratios = suspicious
+    high_ratio_angles = [r for r in results_by_angle if r['ratio'] > 0.08]
+    if len(high_ratio_angles) > 3:
+        suspicious_penalty += 0.15  # Multiple high angles penalty
+    
+    # Very high ratio with low keypoints = suspicious
+    if ratio > 0.2 and total_kpts < 15:
+        suspicious_penalty += 0.25  # Low complexity penalty
+    
+    # 3. Calculate final security score
+    security_score = quality_score * (1.0 - suspicious_penalty)
+    security_score = max(0.0, min(1.0, security_score))  # Clamp between 0-1
+    
+    return {
+        'security_score': security_score,
+        'quality_score': quality_score,
+        'suspicious_penalty': suspicious_penalty,
+        'risk_level': 'HIGH' if suspicious_penalty > 0.3 else 'MEDIUM' if suspicious_penalty > 0.1 else 'LOW'
+    }
+
 def analyze_signatures(im1, im2, matching, device, use_rotation=True):
-    """Analyze two signature images with optional rotation"""
+    """Analyze two signature images with optional rotation and advanced security"""
     
     # Parameters
-    base_threshold = 0.30
-    rotation_threshold = 0.50
-    rotation_improvement_threshold = 0.10
+    base_threshold = 0.25  # Slightly lowered for better sensitivity
+    rotation_threshold = 0.45
+    rotation_improvement_threshold = 0.08
     
     if use_rotation:
         rotation_angles = [0, 45, 90, 135, 180, 225, 270, 315]
@@ -318,15 +359,27 @@ def analyze_signatures(im1, im2, matching, device, use_rotation=True):
             rotation_used = True
             decision_threshold = rotation_threshold
     
-    # Additional validation
+    # Advanced security analysis
+    security_analysis = calculate_security_score(results_by_angle, final_result)
+    
+    # Dynamic threshold adjustment based on security score
+    dynamic_threshold = decision_threshold
+    
+    # If high risk detected, increase threshold
+    if security_analysis['risk_level'] == 'HIGH':
+        dynamic_threshold += 0.15
+    elif security_analysis['risk_level'] == 'MEDIUM':
+        dynamic_threshold += 0.08
+    
+    # Additional validation with security considerations
     total_kpts = final_result['total']
     valid_matches = final_result['valid']
     ratio = final_result['ratio']
     
     if total_kpts < 20:
-        decision_threshold += 0.1
+        dynamic_threshold += 0.05  # Reduced penalty, let security score handle it
     if ratio > 0.8 and valid_matches < 10:
-        decision_threshold += 0.1
+        dynamic_threshold += 0.1
     
     # Create visualization
     kpts0 = final_result['kpts0']
@@ -347,8 +400,8 @@ def analyze_signatures(im1, im2, matching, device, use_rotation=True):
     im2c = cv2.cvtColor(im2_final, cv2.COLOR_GRAY2BGR)
     vis = cv2.drawMatches(im1c, kp0, im2c, kp1, dms, None)
     
-    # Prediction
-    predicted_same = ratio >= decision_threshold
+    # Final prediction with dynamic threshold
+    predicted_same = ratio >= dynamic_threshold
     
     return {
         'ratio': ratio,
@@ -356,10 +409,12 @@ def analyze_signatures(im1, im2, matching, device, use_rotation=True):
         'total_keypoints': total_kpts,
         'rotation_angle': final_result['angle'],
         'rotation_used': rotation_used,
-        'threshold': decision_threshold,
+        'threshold': dynamic_threshold,
+        'base_threshold': decision_threshold,
         'predicted_same': predicted_same,
         'visualization': vis,
-        'all_results': results_by_angle
+        'all_results': results_by_angle,
+        'security_analysis': security_analysis
     }
 
 # Sidebar controls with enhanced styling
@@ -527,13 +582,19 @@ if uploaded_file1 and uploaded_file2:
         st.markdown("---")
         st.subheader("📊 Analiz Sonuçları")
         
-        # Main result box
+        # Main result box with security analysis
+        security = result['security_analysis']
+        risk_color = '#dc3545' if security['risk_level'] == 'HIGH' else '#ffc107' if security['risk_level'] == 'MEDIUM' else '#28a745'
+        risk_emoji = '🚨' if security['risk_level'] == 'HIGH' else '⚠️' if security['risk_level'] == 'MEDIUM' else '🛡️'
+        
         if result['predicted_same']:
             st.markdown(f"""
             <div class="result-box match-positive">
                 <h3>✅ EŞLEŞME TESPİT EDİLDİ</h3>
                 <p><strong>Eşleşme Oranı:</strong> {result['ratio']*100:.1f}%</p>
-                <p><strong>Eşik Değer:</strong> {result['threshold']*100:.1f}%</p>
+                <p><strong>Dinamik Eşik:</strong> {result['threshold']*100:.1f}%</p>
+                <p><strong>Güvenlik Skoru:</strong> {security['security_score']*100:.1f}%</p>
+                <p style="color: {risk_color};"><strong>Risk Seviyesi:</strong> {risk_emoji} {security['risk_level']}</p>
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -541,12 +602,14 @@ if uploaded_file1 and uploaded_file2:
             <div class="result-box match-negative">
                 <h3>❌ EŞLEŞME TESPİT EDİLMEDİ</h3>
                 <p><strong>Eşleşme Oranı:</strong> {result['ratio']*100:.1f}%</p>
-                <p><strong>Eşik Değer:</strong> {result['threshold']*100:.1f}%</p>
+                <p><strong>Dinamik Eşik:</strong> {result['threshold']*100:.1f}%</p>
+                <p><strong>Güvenlik Skoru:</strong> {security['security_score']*100:.1f}%</p>
+                <p style="color: {risk_color};"><strong>Risk Seviyesi:</strong> {risk_emoji} {security['risk_level']}</p>
             </div>
             """, unsafe_allow_html=True)
         
         # Detailed statistics with beautiful cards
-        col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
+        col_stat1, col_stat2, col_stat3, col_stat4, col_stat5 = st.columns(5)
         
         with col_stat1:
             st.markdown(f"""
@@ -583,6 +646,16 @@ if uploaded_file1 and uploaded_file2:
                 <h3 style="margin: 0; font-size: 2em;">⏱️</h3>
                 <h2 style="margin: 5px 0;">{processing_time:.2f}s</h2>
                 <p style="margin: 0; opacity: 0.9;">İşlem Süresi</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col_stat5:
+            security_emoji = "🛡️" if security['risk_level'] == 'LOW' else "⚠️" if security['risk_level'] == 'MEDIUM' else "🚨"
+            st.markdown(f"""
+            <div class="metric-card">
+                <h3 style="margin: 0; font-size: 2em;">{security_emoji}</h3>
+                <h2 style="margin: 5px 0;">{security['security_score']*100:.0f}%</h2>
+                <p style="margin: 0; opacity: 0.9;">Güvenlik Skoru</p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -632,7 +705,11 @@ if uploaded_file1 and uploaded_file2:
                 <li><strong>Rotasyon Stratejisi:</strong> {'Kullanıldı' if result['rotation_used'] else 'Kullanılmadı'}</li>
                 <li><strong>En İyi Açı:</strong> {result['rotation_angle']}°</li>
                 <li><strong>Güvenilirlik:</strong> {'Yüksek' if result['total_keypoints'] >= 20 else 'Orta'}</li>
-                <li><strong>Algoritma:</strong> SuperGlue + SuperPoint</li>
+                <li><strong>Algoritma:</strong> SuperGlue + SuperPoint + Güvenlik AI</li>
+                <li><strong>Temel Eşik:</strong> {result['base_threshold']*100:.1f}%</li>
+                <li><strong>Dinamik Eşik:</strong> {result['threshold']*100:.1f}%</li>
+                <li><strong>Sahtecilik Riski:</strong> {security['risk_level']} ({security['suspicious_penalty']*100:.1f}% ceza)</li>
+                <li><strong>Kalite Skoru:</strong> {security['quality_score']*100:.1f}%</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
