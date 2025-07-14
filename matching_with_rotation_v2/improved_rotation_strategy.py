@@ -69,13 +69,13 @@ def match_and_draw(im1, im2, save_path, orig_folder, proc_folder, base_threshold
         
         results_by_angle.append({
             'angle': angle,
-            'ratio': ratio,
-            'valid': valid,
-            'total': total,
-            'kpts0': kpts0,
-            'kpts1': kpts1,
-            'matches': matches,
-            'im2_rotated': im2_rotated
+            'ratio': ratio, # Her açının performansı kaydediliyor
+            'valid': valid, # Eşleşen keypoint sayısı
+            'total': total, # Toplam keypoint sayısı
+            'kpts0': kpts0, # İlk imzanın keypoint'leri
+            'kpts1': kpts1, # İkinci imzanın keypoint'leri
+            'matches': matches, # Eşleştirme array'i
+            'im2_rotated': im2_rotated # Döndürülmüş görüntü
         })
     
     # IMPROVED SELECTION LOGIC
@@ -87,13 +87,13 @@ def match_and_draw(im1, im2, save_path, orig_folder, proc_folder, base_threshold
     # 2. If rotation improves significantly, use it but with stricter threshold
     # 3. If rotation doesn't improve much, stick with base result
     
-    final_result = base_result
+    final_result = base_result # # En yüksek ratio
     decision_threshold = base_threshold
     rotation_used = False
     
     if best_result['angle'] != 0:  # Rotation found better match
         improvement = best_result['ratio'] - base_result['ratio']
-        
+        # En iyi sonuç 0° değilse Rotation analizi yap
         # Only use rotation if improvement is significant
         if improvement >= rotation_improvement_threshold:
             final_result = best_result
@@ -119,11 +119,17 @@ def match_and_draw(im1, im2, save_path, orig_folder, proc_folder, base_threshold
     # If too few keypoints, be more conservative
     if total < 20:
         decision_threshold += 0.1
-    
+    ''''Eğer toplam keypoint sayısı 20'den azsa, threshold'u 0.1 artırıyor. 
+        Az keypoint varsa güvenilirlik düşüktür'''
+
     # If very high ratio but few matches, be suspicious
     if ratio > 0.8 and valid < 10:
-        decision_threshold += 0.1
-    
+        decision_threshold += 0.1 
+
+    '''Ratio çok yüksek (%80+) ama eşleşme sayısı az (<10) ise, 
+    threshold'u artırıyor. Neden: Bu durum "şüpheli" - 
+    az sayıda keypoint'ten yüksek oran şans eseri olabilir.'''
+
     # Make prediction
     predicted_same = ratio >= decision_threshold
     
