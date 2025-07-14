@@ -121,17 +121,17 @@ def match_and_draw(im1, im2, save_path, orig_folder, proc_folder, base_threshold
     # Dynamic threshold adjustment based on security score
     dynamic_threshold = decision_threshold
     
-    # If high risk detected, increase threshold (reduced increases)
+    # If high risk detected, increase threshold
     if security_analysis['risk_level'] == 'HIGH':
-        dynamic_threshold += 0.08  # Reduced from 0.15
+        dynamic_threshold += 0.15
     elif security_analysis['risk_level'] == 'MEDIUM':
-        dynamic_threshold += 0.04  # Reduced from 0.08
+        dynamic_threshold += 0.08
     
     # Additional validation with security considerations (reduced penalties)
     if total < 20:
-        dynamic_threshold += 0.03  # Further reduced from 0.05
-    if ratio > 0.8 and valid < 10:
         dynamic_threshold += 0.05  # Reduced from 0.1
+    if ratio > 0.8 and valid < 10:
+        dynamic_threshold += 0.1
     
     # Make prediction with dynamic threshold
     predicted_same = ratio >= dynamic_threshold
@@ -216,21 +216,21 @@ def calculate_security_score(results_by_angle, final_result):
     else:
         quality_score = 0.0
     
-    # 2. Suspicious pattern detection (rebalanced for better accuracy)
+    # 2. Suspicious pattern detection
     suspicious_penalty = 0.0
     
-    # Too many matches might indicate forgery attempt (more lenient)
-    if ratio > 0.25 and valid_matches > 50:  # Increased thresholds
-        suspicious_penalty += 0.1  # Reduced penalty
+    # Too many matches might indicate forgery attempt
+    if ratio > 0.15 and valid_matches > 30:
+        suspicious_penalty += 0.2  # High match count penalty
     
-    # Multiple angles with similar high ratios = suspicious (more lenient)
-    high_ratio_angles = [r for r in results_by_angle if r['ratio'] > 0.12]  # Higher threshold
-    if len(high_ratio_angles) > 5:  # More angles needed to be suspicious
-        suspicious_penalty += 0.08  # Reduced penalty
+    # Multiple angles with similar high ratios = suspicious
+    high_ratio_angles = [r for r in results_by_angle if r['ratio'] > 0.08]
+    if len(high_ratio_angles) > 3:
+        suspicious_penalty += 0.15  # Multiple high angles penalty
     
-    # Very high ratio with low keypoints = suspicious (more targeted)
-    if ratio > 0.35 and total_kpts < 10:  # Much higher ratio threshold, lower keypoint threshold
-        suspicious_penalty += 0.15  # Reduced penalty
+    # Very high ratio with low keypoints = suspicious
+    if ratio > 0.2 and total_kpts < 15:
+        suspicious_penalty += 0.25  # Low complexity penalty
     
     # 3. Calculate final security score
     security_score = quality_score * (1.0 - suspicious_penalty)
@@ -240,7 +240,7 @@ def calculate_security_score(results_by_angle, final_result):
         'security_score': security_score,
         'quality_score': quality_score,
         'suspicious_penalty': suspicious_penalty,
-        'risk_level': 'HIGH' if suspicious_penalty > 0.2 else 'MEDIUM' if suspicious_penalty > 0.05 else 'LOW'
+        'risk_level': 'HIGH' if suspicious_penalty > 0.3 else 'MEDIUM' if suspicious_penalty > 0.1 else 'LOW'
     }
 
 # 3) Get only numeric folders

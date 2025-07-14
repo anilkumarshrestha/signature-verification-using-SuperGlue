@@ -269,21 +269,21 @@ def calculate_security_score(results_by_angle, final_result):
     else:
         quality_score = 0.0
     
-    # 2. Suspicious pattern detection
+    # 2. Suspicious pattern detection (rebalanced for better accuracy)
     suspicious_penalty = 0.0
     
-    # Too many matches might indicate forgery attempt
-    if ratio > 0.15 and valid_matches > 30:
-        suspicious_penalty += 0.2  # High match count penalty
+    # Too many matches might indicate forgery attempt (more lenient)
+    if ratio > 0.25 and valid_matches > 50:  # Increased thresholds
+        suspicious_penalty += 0.1  # Reduced penalty
     
-    # Multiple angles with similar high ratios = suspicious
-    high_ratio_angles = [r for r in results_by_angle if r['ratio'] > 0.08]
-    if len(high_ratio_angles) > 3:
-        suspicious_penalty += 0.15  # Multiple high angles penalty
+    # Multiple angles with similar high ratios = suspicious (more lenient)
+    high_ratio_angles = [r for r in results_by_angle if r['ratio'] > 0.12]  # Higher threshold
+    if len(high_ratio_angles) > 5:  # More angles needed to be suspicious
+        suspicious_penalty += 0.08  # Reduced penalty
     
-    # Very high ratio with low keypoints = suspicious
-    if ratio > 0.2 and total_kpts < 15:
-        suspicious_penalty += 0.25  # Low complexity penalty
+    # Very high ratio with low keypoints = suspicious (more targeted)
+    if ratio > 0.35 and total_kpts < 10:  # Much higher ratio threshold, lower keypoint threshold
+        suspicious_penalty += 0.15  # Reduced penalty
     
     # 3. Calculate final security score
     security_score = quality_score * (1.0 - suspicious_penalty)
@@ -293,7 +293,7 @@ def calculate_security_score(results_by_angle, final_result):
         'security_score': security_score,
         'quality_score': quality_score,
         'suspicious_penalty': suspicious_penalty,
-        'risk_level': 'HIGH' if suspicious_penalty > 0.3 else 'MEDIUM' if suspicious_penalty > 0.1 else 'LOW'
+        'risk_level': 'HIGH' if suspicious_penalty > 0.2 else 'MEDIUM' if suspicious_penalty > 0.05 else 'LOW'
     }
 
 def analyze_signatures(im1, im2, matching, device, use_rotation=True):
@@ -365,11 +365,11 @@ def analyze_signatures(im1, im2, matching, device, use_rotation=True):
     # Dynamic threshold adjustment based on security score
     dynamic_threshold = decision_threshold
     
-    # If high risk detected, increase threshold
+    # If high risk detected, increase threshold (reduced increases)
     if security_analysis['risk_level'] == 'HIGH':
-        dynamic_threshold += 0.15
+        dynamic_threshold += 0.08  # Reduced from 0.15
     elif security_analysis['risk_level'] == 'MEDIUM':
-        dynamic_threshold += 0.08
+        dynamic_threshold += 0.04  # Reduced from 0.08
     
     # Additional validation with security considerations
     total_kpts = final_result['total']
@@ -377,9 +377,9 @@ def analyze_signatures(im1, im2, matching, device, use_rotation=True):
     ratio = final_result['ratio']
     
     if total_kpts < 20:
-        dynamic_threshold += 0.05  # Reduced penalty, let security score handle it
+        dynamic_threshold += 0.03  # Further reduced from 0.05
     if ratio > 0.8 and valid_matches < 10:
-        dynamic_threshold += 0.1
+        dynamic_threshold += 0.05  # Reduced from 0.1
     
     # Create visualization
     kpts0 = final_result['kpts0']
@@ -459,7 +459,7 @@ with st.sidebar:
     
     show_all_angles = st.checkbox(
         "📊 Tüm açıları göster", 
-        value=False, 
+        value=True, 
         help="Her rotasyon açısının sonuçlarını gösterir"
     )
     
@@ -473,8 +473,7 @@ with st.sidebar:
                 border-radius: 10px; 
                 text-align: center;">
         <h4 style="margin: 0 0 10px 0;">📈 Sistem Performansı</h4>
-        <p style="margin: 5px 0; font-size: 0.9em;">🎯 Doğruluk: %95+</p>
-        <p style="margin: 5px 0; font-size: 0.9em;">⚡ Hız: ~2-3 saniye</p>
+        <p style="margin: 5px 0; font-size: 0.9em;">⚡ Hız: ~2-3 saniye (GPU)</p>
         <p style="margin: 5px 0; font-size: 0.9em;">🔄 8 farklı açı analizi</p>
     </div>
     """, unsafe_allow_html=True)
@@ -582,19 +581,13 @@ if uploaded_file1 and uploaded_file2:
         st.markdown("---")
         st.subheader("📊 Analiz Sonuçları")
         
-        # Main result box with security analysis
-        security = result['security_analysis']
-        risk_color = '#dc3545' if security['risk_level'] == 'HIGH' else '#ffc107' if security['risk_level'] == 'MEDIUM' else '#28a745'
-        risk_emoji = '🚨' if security['risk_level'] == 'HIGH' else '⚠️' if security['risk_level'] == 'MEDIUM' else '🛡️'
-        
+        # Main result box
         if result['predicted_same']:
             st.markdown(f"""
             <div class="result-box match-positive">
                 <h3>✅ EŞLEŞME TESPİT EDİLDİ</h3>
                 <p><strong>Eşleşme Oranı:</strong> {result['ratio']*100:.1f}%</p>
-                <p><strong>Dinamik Eşik:</strong> {result['threshold']*100:.1f}%</p>
-                <p><strong>Güvenlik Skoru:</strong> {security['security_score']*100:.1f}%</p>
-                <p style="color: {risk_color};"><strong>Risk Seviyesi:</strong> {risk_emoji} {security['risk_level']}</p>
+                <p><strong>Eşik Değer:</strong> {result['threshold']*100:.1f}%</p>
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -602,14 +595,12 @@ if uploaded_file1 and uploaded_file2:
             <div class="result-box match-negative">
                 <h3>❌ EŞLEŞME TESPİT EDİLMEDİ</h3>
                 <p><strong>Eşleşme Oranı:</strong> {result['ratio']*100:.1f}%</p>
-                <p><strong>Dinamik Eşik:</strong> {result['threshold']*100:.1f}%</p>
-                <p><strong>Güvenlik Skoru:</strong> {security['security_score']*100:.1f}%</p>
-                <p style="color: {risk_color};"><strong>Risk Seviyesi:</strong> {risk_emoji} {security['risk_level']}</p>
+                <p><strong>Eşik Değer:</strong> {result['threshold']*100:.1f}%</p>
             </div>
             """, unsafe_allow_html=True)
         
         # Detailed statistics with beautiful cards
-        col_stat1, col_stat2, col_stat3, col_stat4, col_stat5 = st.columns(5)
+        col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
         
         with col_stat1:
             st.markdown(f"""
@@ -646,16 +637,6 @@ if uploaded_file1 and uploaded_file2:
                 <h3 style="margin: 0; font-size: 2em;">⏱️</h3>
                 <h2 style="margin: 5px 0;">{processing_time:.2f}s</h2>
                 <p style="margin: 0; opacity: 0.9;">İşlem Süresi</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col_stat5:
-            security_emoji = "🛡️" if security['risk_level'] == 'LOW' else "⚠️" if security['risk_level'] == 'MEDIUM' else "🚨"
-            st.markdown(f"""
-            <div class="metric-card">
-                <h3 style="margin: 0; font-size: 2em;">{security_emoji}</h3>
-                <h2 style="margin: 5px 0;">{security['security_score']*100:.0f}%</h2>
-                <p style="margin: 0; opacity: 0.9;">Güvenlik Skoru</p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -705,11 +686,7 @@ if uploaded_file1 and uploaded_file2:
                 <li><strong>Rotasyon Stratejisi:</strong> {'Kullanıldı' if result['rotation_used'] else 'Kullanılmadı'}</li>
                 <li><strong>En İyi Açı:</strong> {result['rotation_angle']}°</li>
                 <li><strong>Güvenilirlik:</strong> {'Yüksek' if result['total_keypoints'] >= 20 else 'Orta'}</li>
-                <li><strong>Algoritma:</strong> SuperGlue + SuperPoint + Güvenlik AI</li>
-                <li><strong>Temel Eşik:</strong> {result['base_threshold']*100:.1f}%</li>
-                <li><strong>Dinamik Eşik:</strong> {result['threshold']*100:.1f}%</li>
-                <li><strong>Sahtecilik Riski:</strong> {security['risk_level']} ({security['suspicious_penalty']*100:.1f}% ceza)</li>
-                <li><strong>Kalite Skoru:</strong> {security['quality_score']*100:.1f}%</li>
+                <li><strong>Eşik Değer:</strong> {result['threshold']*100:.1f}%</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -727,85 +704,3 @@ else:
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("""
-    <div style="text-align: center; margin: 30px 0;">
-        <h3 style="color: #764ba2; font-family: 'Poppins', sans-serif;">📖 Kullanım Kılavuzu</h3>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col_help1, col_help2 = st.columns(2)
-    
-    with col_help1:
-        st.markdown("""
-        <div class="instruction-card">
-            <h4 style="color: #ff6b6b; margin-bottom: 15px;">🔧 Nasıl Kullanılır:</h4>
-            <ul style="color: #333; line-height: 1.8;">
-                <li>📤 Sol panelden ilk imza dosyasını yükleyin</li>
-                <li>📤 Sağ panelden ikinci imza dosyasını yükleyin</li>
-                <li>🔍 "İmzaları Analiz Et" butonuna tıklayın</li>
-                <li>📊 Sonuçları inceleyin ve yorumlayın</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col_help2:
-        st.markdown("""
-        <div class="instruction-card">
-            <h4 style="color: #ff6b6b; margin-bottom: 15px;">⚙️ Özellikler:</h4>
-            <ul style="color: #333; line-height: 1.8;">
-                <li>🔄 Akıllı rotasyon analizi</li>
-                <li>🎨 Gerçek zamanlı görselleştirme</li>
-                <li>📈 Detaylı istatistik raporları</li>
-                <li>🎯 %95+ doğruluk oranı</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Add demo section
-    st.markdown("""
-    <div style="text-align: center; margin: 40px 0;">
-        <h3 style="color: #667eea; font-family: 'Poppins', sans-serif;">🚀 Teknoloji</h3>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col_tech1, col_tech2, col_tech3 = st.columns(3)
-    
-    with col_tech1:
-        st.markdown("""
-        <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); border-radius: 15px; margin: 10px 0;">
-            <h3 style="font-size: 3em; margin: 0;">🧠</h3>
-            <h4 style="color: #333; margin: 10px 0;">SuperPoint</h4>
-            <p style="color: #666; margin: 0;">Anahtar nokta tespiti</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col_tech2:
-        st.markdown("""
-        <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); border-radius: 15px; margin: 10px 0;">
-            <h3 style="font-size: 3em; margin: 0;">🔗</h3>
-            <h4 style="color: #333; margin: 10px 0;">SuperGlue</h4>
-            <p style="color: #666; margin: 0;">Akıllı eşleştirme</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col_tech3:
-        st.markdown("""
-        <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%); border-radius: 15px; margin: 10px 0;">
-            <h3 style="font-size: 3em; margin: 0;">🔄</h3>
-            <h4 style="color: #333; margin: 10px 0;">Rotation AI</h4>
-            <p style="color: #666; margin: 0;">Açı optimizasyonu</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-# Enhanced Footer
-st.markdown("---")
-st.markdown("""
-<div class="footer">
-    <h3 style="margin: 0 0 10px 0;">🔬 SuperGlue + SuperPoint İmza Eşleştirme Sistemi</h3>
-    <p style="margin: 5px 0; opacity: 0.8;">🎯 Yapay Zeka Destekli • ⚡ Hızlı Analiz • 🎨 Görsel Sonuçlar</p>
-    <p style="margin: 5px 0; opacity: 0.7;">Geliştirildi: 2025 | Powered by Streamlit 🚀</p>
-    <div style="margin-top: 15px; font-size: 1.5em;">
-        ✨ 🤖 ✨ 🧠 ✨ 🔮 ✨
-    </div>
-</div>
-""", unsafe_allow_html=True)
