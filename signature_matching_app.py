@@ -6,7 +6,7 @@ import time
 from PIL import Image
 import os
 import tempfile
-from models.matching import Matching
+from signature_analysis import analyze_signatures_with_rotation, create_visualization, load_superglue_model
 
 # Configure Streamlit page
 st.set_page_config(
@@ -239,183 +239,19 @@ st.markdown('''
 @st.cache_resource
 def load_model():
     """Load the SuperGlue model"""
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    config = {
-        'superpoint': dict(nms_radius=4, keypoint_threshold=0.005, max_keypoints=1024),
-        'superglue': dict(weights='indoor', sinkhorn_iterations=20, match_threshold=0.2)
-    }
-    matching = Matching(config).to(device).eval()
-    return matching, device
+    return load_superglue_model()
 
-def rotate_image(image, angle):
-    """Rotate image by given angle"""
-    (h, w) = image.shape[:2]
-    center = (w // 2, h // 2)
-    M = cv2.getRotationMatrix2D(center, angle, 1.0)
-    rotated = cv2.warpAffine(image, M, (w, h))
-    return rotated
-
-def calculate_security_score(results_by_angle, final_result):
-    """Calculate advanced security score to detect potential forgeries"""
-    
-    # Base metrics
-    ratio = final_result['ratio']
-    valid_matches = final_result['valid']
-    total_kpts = final_result['total']
-    
-    # 1. Quality over quantity check
-    if valid_matches > 0:
-        quality_score = min(1.0, valid_matches / max(total_kpts * 0.1, 1))  # Ideal: 10% strong matches
-    else:
-        quality_score = 0.0
-    
-    # 2. Suspicious pattern detection (rebalanced for better accuracy)
-    suspicious_penalty = 0.0
-    
-    # Too many matches might indicate forgery attempt (more lenient)
-    if ratio > 0.25 and valid_matches > 50:  # Increased thresholds
-        suspicious_penalty += 0.1  # Reduced penalty
-    
-    # Multiple angles with similar high ratios = suspicious (more lenient)
-    high_ratio_angles = [r for r in results_by_angle if r['ratio'] > 0.12]  # Higher threshold
-    if len(high_ratio_angles) > 5:  # More angles needed to be suspicious
-        suspicious_penalty += 0.08  # Reduced penalty
-    
-    # Very high ratio with low keypoints = suspicious (more targeted)
-    if ratio > 0.35 and total_kpts < 10:  # Much higher ratio threshold, lower keypoint threshold
-        suspicious_penalty += 0.15  # Reduced penalty
-    
-    # 3. Calculate final security score
-    security_score = quality_score * (1.0 - suspicious_penalty)
-    security_score = max(0.0, min(1.0, security_score))  # Clamp between 0-1
-    
-    return {
-        'security_score': security_score,
-        'quality_score': quality_score,
-        'suspicious_penalty': suspicious_penalty,
-        'risk_level': 'HIGH' if suspicious_penalty > 0.2 else 'MEDIUM' if suspicious_penalty > 0.05 else 'LOW'
-    }
-
-def analyze_signatures(im1, im2, matching, device, use_rotation=True):
-    """Analyze two signature images with optional rotation and advanced security"""
-    
-    # Parameters
-    base_threshold = 0.25  # Slightly lowered for better sensitivity
-    rotation_threshold = 0.45
-    rotation_improvement_threshold = 0.08
-    
-    if use_rotation:
-        rotation_angles = [0, 45, 90, 135, 180, 225, 270, 315]
-    else:
-        rotation_angles = [0]
-    
-    results_by_angle = []
-    
-    for angle in rotation_angles:
-        # Rotate second image
-        im2_rotated = rotate_image(im2, angle) if angle != 0 else im2
-        
-        # Convert to tensor
-        inp = {
-            'image0': torch.from_numpy(im1/255.).float()[None,None].to(device),
-            'image1': torch.from_numpy(im2_rotated/255.).float()[None,None].to(device),
-        }
-        
-        with torch.no_grad():
-            pred = matching(inp)
-
-        # Keypoints & matches
-        kpts0 = pred['keypoints0'][0].cpu().numpy()
-        kpts1 = pred['keypoints1'][0].cpu().numpy()
-        matches = pred['matches0'][0].cpu().numpy()
-
-        valid = int((matches > -1).sum())
-        total = max(len(kpts0), len(kpts1), 1)
-        ratio = valid / total
-        
-        results_by_angle.append({
-            'angle': angle,
-            'ratio': ratio,
-            'valid': valid,
-            'total': total,
-            'kpts0': kpts0,
-            'kpts1': kpts1,
-            'matches': matches,
-            'im2_rotated': im2_rotated
-        })
-    
-    # Selection logic
-    base_result = results_by_angle[0]
-    best_result = max(results_by_angle, key=lambda x: x['ratio'])
-    
-    final_result = base_result
-    decision_threshold = base_threshold
-    rotation_used = False
-    
-    if best_result['angle'] != 0 and use_rotation:
-        improvement = best_result['ratio'] - base_result['ratio']
-        if improvement >= rotation_improvement_threshold:
-            final_result = best_result
-            rotation_used = True
-            decision_threshold = rotation_threshold
-    
-    # Advanced security analysis
-    security_analysis = calculate_security_score(results_by_angle, final_result)
-    
-    # Dynamic threshold adjustment based on security score
-    dynamic_threshold = decision_threshold
-    
-    # If high risk detected, increase threshold (reduced increases)
-    if security_analysis['risk_level'] == 'HIGH':
-        dynamic_threshold += 0.08  # Reduced from 0.15
-    elif security_analysis['risk_level'] == 'MEDIUM':
-        dynamic_threshold += 0.04  # Reduced from 0.08
-    
-    # Additional validation with security considerations
-    total_kpts = final_result['total']
-    valid_matches = final_result['valid']
-    ratio = final_result['ratio']
-    
-    if total_kpts < 20:
-        dynamic_threshold += 0.03  # Further reduced from 0.05
-    if ratio > 0.8 and valid_matches < 10:
-        dynamic_threshold += 0.05  # Reduced from 0.1
-    
-    # Create visualization
-    kpts0 = final_result['kpts0']
-    kpts1 = final_result['kpts1']
-    matches = final_result['matches']
-    im2_final = final_result['im2_rotated']
-    
-    # Convert to visualization
-    dms = [
-        cv2.DMatch(_queryIdx=i, _trainIdx=int(m), _distance=0)
-        for i, m in enumerate(matches) if m > -1
-    ]
-    
-    kp0 = [cv2.KeyPoint(x=float(p[0]), y=float(p[1]), size=1) for p in kpts0]
-    kp1 = [cv2.KeyPoint(x=float(p[0]), y=float(p[1]), size=1) for p in kpts1]
-    
-    im1c = cv2.cvtColor(im1, cv2.COLOR_GRAY2BGR)
-    im2c = cv2.cvtColor(im2_final, cv2.COLOR_GRAY2BGR)
-    vis = cv2.drawMatches(im1c, kp0, im2c, kp1, dms, None)
-    
-    # Final prediction with dynamic threshold
-    predicted_same = ratio >= dynamic_threshold
-    
-    return {
-        'ratio': ratio,
-        'valid_matches': valid_matches,
-        'total_keypoints': total_kpts,
-        'rotation_angle': final_result['angle'],
-        'rotation_used': rotation_used,
-        'threshold': dynamic_threshold,
-        'base_threshold': decision_threshold,
-        'predicted_same': predicted_same,
-        'visualization': vis,
-        'all_results': results_by_angle,
-        'security_analysis': security_analysis
-    }
+def analyze_signatures(im1, im2, matching, device, use_rotation=True, use_preprocessing=True):
+    """Wrapper function for the common signature analysis"""
+    return analyze_signatures_with_rotation(
+        im1, im2, matching, device,
+        base_threshold=0.25,
+        rotation_threshold=0.45, 
+        rotation_improvement_threshold=0.08,
+        use_rotation=use_rotation,
+        use_preprocessing=use_preprocessing,
+        preprocessing_method='kmeans'
+    )
 
 # Sidebar controls with enhanced styling
 st.sidebar.markdown("""
@@ -455,6 +291,12 @@ with st.sidebar:
         "🔄 Rotasyon analizi kullan", 
         value=True, 
         help="İmzaları farklı açılarda döndürerek analiz eder"
+    )
+    
+    use_preprocessing = st.checkbox(
+        "🧹 K-means ön işleme kullan", 
+        value=True, 
+        help="Noktalı kağıt arka planını K-means ile temizler"
     )
     
     show_all_angles = st.checkbox(
@@ -574,7 +416,7 @@ if uploaded_file1 and uploaded_file2:
                 img2_cv = cv2.resize(img2_cv, (img1_cv.shape[1], img1_cv.shape[0]))
             
             start_time = time.time()
-            result = analyze_signatures(img1_cv, img2_cv, matching, device, use_rotation)
+            result = analyze_signatures(img1_cv, img2_cv, matching, device, use_rotation, use_preprocessing)
             processing_time = time.time() - start_time
         
         # Display results
@@ -647,12 +489,14 @@ if uploaded_file1 and uploaded_file2:
                 🎨 Görsel Analiz - Eşleşen Noktalar
             </h3>
             <p style="color: #666; margin-bottom: 20px;">
-                Yeşil çizgiler başarılı eşleştirmeleri gösterir
+                Yeşil çizgiler başarılı eşleştirmeleri gösterir (K-means ön işlemeli)
             </p>
         </div>
         """, unsafe_allow_html=True)
         
-        vis_rgb = cv2.cvtColor(result['visualization'], cv2.COLOR_BGR2RGB)
+        # Create and display visualization
+        vis = create_visualization(result)
+        vis_rgb = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
         st.image(vis_rgb, use_column_width=True)
         
         # Add a progress bar for visual appeal
@@ -683,8 +527,10 @@ if uploaded_file1 and uploaded_file2:
         <div class="stats-box">
             <h4>ℹ️ Analiz Detayları</h4>
             <ul>
+                <li><strong>Ön İşleme:</strong> {'K-means uygulandı' if use_preprocessing else 'Kullanılmadı'}</li>
                 <li><strong>Rotasyon Stratejisi:</strong> {'Kullanıldı' if result['rotation_used'] else 'Kullanılmadı'}</li>
                 <li><strong>En İyi Açı:</strong> {result['rotation_angle']}°</li>
+                <li><strong>Güvenlik Riski:</strong> {result['security_analysis']['risk_level']}</li>
                 <li><strong>Güvenilirlik:</strong> {'Yüksek' if result['total_keypoints'] >= 20 else 'Orta'}</li>
                 <li><strong>Eşik Değer:</strong> {result['threshold']*100:.1f}%</li>
             </ul>

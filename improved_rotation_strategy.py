@@ -6,15 +6,10 @@ import torch
 import numpy as np
 import json
 import time
-from models.matching import Matching
+from signature_analysis import analyze_signatures_with_rotation, create_visualization, add_text_overlay, load_superglue_model
 
 # 1) Model and device
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-config = {
-    'superpoint': dict(nms_radius=4, keypoint_threshold=0.005, max_keypoints=1024),
-    'superglue': dict(weights='indoor', sinkhorn_iterations=20, match_threshold=0.2)
-}
-matching = Matching(config).to(device).eval()
+matching, device = load_superglue_model()
 
 # 2) Folder paths
 base_dir  = r"C:\\Users\\gulme\\OneDrive\\Desktop\\dataset"
@@ -40,208 +35,51 @@ def rotate_image(image, angle):
     return rotated
 
 def match_and_draw(im1, im2, save_path, orig_folder, proc_folder, base_threshold):
+    """
+    Ortak analiz fonksiyonu kullanarak imzaları karşılaştır ve görselleştir
+    """
     start_time = time.time()
     
-    # ROTATION STRATEGY
-    rotation_angles = [0, 45, 90, 135, 180, 225, 270, 315]
-    results_by_angle = []
+    # Ortak analiz fonksiyonunu kullan
+    result = analyze_signatures_with_rotation(
+        im1, im2, matching, device,
+        base_threshold=base_threshold,
+        rotation_threshold=0.45,
+        rotation_improvement_threshold=0.08,
+        use_rotation=True,
+        use_preprocessing=True,
+        preprocessing_method='kmeans'
+    )
     
-    for angle in rotation_angles:
-        # Rotate second image
-        im2_rotated = rotate_image(im2, angle) if angle != 0 else im2
-        
-        # Convert to tensor
-        inp = {
-            'image0': torch.from_numpy(im1/255.).float()[None,None].to(device),
-            'image1': torch.from_numpy(im2_rotated/255.).float()[None,None].to(device),
-        }
-        with torch.no_grad():
-            pred = matching(inp)
-
-        # Keypoints & matches
-        kpts0   = pred['keypoints0'][0].cpu().numpy()
-        kpts1   = pred['keypoints1'][0].cpu().numpy()
-        matches = pred['matches0'][0].cpu().numpy()
-
-        valid = int((matches > -1).sum())
-        total = max(len(kpts0), len(kpts1), 1)
-        ratio = valid / total
-        
-        results_by_angle.append({
-            'angle': angle,
-            'ratio': ratio, # Her açının performansı kaydediliyor
-            'valid': valid, # Eşleşen keypoint sayısı
-            'total': total, # Toplam keypoint sayısı
-            'kpts0': kpts0, # İlk imzanın keypoint'leri
-            'kpts1': kpts1, # İkinci imzanın keypoint'leri
-            'matches': matches, # Eşleştirme array'i
-            'im2_rotated': im2_rotated # Döndürülmüş görüntü
-        })
+    # Debug için ön işleme görselleştirmesi
+    debug_dir = os.path.join(os.path.dirname(save_path), "preprocessing_debug")
+    os.makedirs(debug_dir, exist_ok=True)
     
-    # IMPROVED SELECTION LOGIC
-    base_result = results_by_angle[0]  # 0 degree result
-    best_result = max(results_by_angle, key=lambda x: x['ratio'])
+    debug_path1 = os.path.join(debug_dir, f"debug_{orig_folder}_{os.path.basename(save_path)}")
+    debug_path2 = os.path.join(debug_dir, f"debug_{proc_folder}_{os.path.basename(save_path)}")
     
-    # DECISION LOGIC:
-    # 1. If base result is good enough, use it (no rotation needed)
-    # 2. If rotation improves significantly, use it but with stricter threshold
-    # 3. If rotation doesn't improve much, stick with base result
+    # Ön işleme sonuçlarını kaydet (debug için)
+    cv2.imwrite(debug_path1.replace('.png', '_original.png'), result['original_image1'])
+    cv2.imwrite(debug_path1.replace('.png', '_cleaned.png'), result['final_image1'])
+    cv2.imwrite(debug_path2.replace('.png', '_original.png'), result['original_image2'])
+    cv2.imwrite(debug_path2.replace('.png', '_cleaned.png'), result['final_image2'])
     
-    final_result = base_result # # En yüksek ratio
-    decision_threshold = base_threshold
-    rotation_used = False
+    # Görselleştirme oluştur
+    vis = create_visualization(result)
     
-    if best_result['angle'] != 0:  # Rotation found better match
-        improvement = best_result['ratio'] - base_result['ratio']
-        # En iyi sonuç 0° değilse Rotation analizi yap
-        # Only use rotation if improvement is significant
-        if improvement >= rotation_improvement_threshold:
-            final_result = best_result
-            rotation_used = True
-            # Use stricter threshold for rotated matches
-            decision_threshold = rotation_threshold
-        else:
-            # Improvement not significant enough, stick with base
-            final_result = base_result
-            decision_threshold = base_threshold
-    
-    # Use final result for visualization
-    result = final_result
-    ratio = result['ratio']
-    valid = result['valid']
-    total = result['total']
-    kpts0 = result['kpts0']
-    kpts1 = result['kpts1']
-    matches = result['matches']
-    im2_rotated = result['im2_rotated']
-    
-    # ADVANCED SECURITY ANALYSIS (from Streamlit version)
-    security_analysis = calculate_security_score(results_by_angle, final_result)
-    
-    # Dynamic threshold adjustment based on security score
-    dynamic_threshold = decision_threshold
-    
-    # If high risk detected, increase threshold
-    if security_analysis['risk_level'] == 'HIGH':
-        dynamic_threshold += 0.15
-    elif security_analysis['risk_level'] == 'MEDIUM':
-        dynamic_threshold += 0.08
-    
-    # Additional validation with security considerations (reduced penalties)
-    if total < 20:
-        dynamic_threshold += 0.05  # Reduced from 0.1
-    if ratio > 0.8 and valid < 10:
-        dynamic_threshold += 0.1
-    
-    # Make prediction with dynamic threshold
-    predicted_same = ratio >= dynamic_threshold
-    
-    # Prepare match lines with DMatch list
-    dms = [
-        cv2.DMatch(_queryIdx=i, _trainIdx=int(m), _distance=0)
-        for i, m in enumerate(matches) if m > -1
-    ]
-
-    # Convert keypoints to cv2.KeyPoint format
-    kp0 = [cv2.KeyPoint(x=float(p[0]), y=float(p[1]), size=1) for p in kpts0]
-    kp1 = [cv2.KeyPoint(x=float(p[0]), y=float(p[1]), size=1) for p in kpts1]
-
-    # Convert images to BGR and draw matches
-    im1c = cv2.cvtColor(im1, cv2.COLOR_GRAY2BGR)
-    im2c = cv2.cvtColor(im2_rotated, cv2.COLOR_GRAY2BGR)
-    vis  = cv2.drawMatches(im1c, kp0, im2c, kp1, dms, None)
-
-    # Add prediction info to image
+    # Ground truth bilgisi
     is_same_person = orig_folder == proc_folder
     
-    # Text settings
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 0.5
-    thickness = 1
-    start_y = 25
-    line_spacing = 20
+    # Metin overlay ekle
+    vis_with_text = add_text_overlay(vis, result, ground_truth_same=is_same_person)
     
-    # Simple text with outline function
-    def draw_text_with_outline(img, text, position, font, scale, color, thickness, outline_color=(0, 0, 0)):
-        cv2.putText(img, text, position, font, scale, outline_color, thickness + 1, cv2.LINE_AA)
-        cv2.putText(img, text, position, font, scale, color, thickness, cv2.LINE_AA)
-    
-    # Header information
-    processing_time = time.time() - start_time
-    ratio_percent = ratio * 100
-    improvement_text = f"(+{(best_result['ratio'] - base_result['ratio'])*100:.1f}%)" if rotation_used else ""
-    
-    info_text = f"Match: {ratio_percent:.1f}% ({valid}/{total}) [Rot: {result['angle']}deg] {improvement_text}"
-    draw_text_with_outline(vis, info_text, (10, start_y), font, font_scale, (0, 255, 255), thickness)
-    
-    # Decision info with security
-    security_text = f"Security: {security_analysis['risk_level']} (Score: {security_analysis['security_score']:.2f})"
-    draw_text_with_outline(vis, security_text, (10, start_y + line_spacing), font, font_scale, (255, 200, 0), thickness)
-    
-    decision_text = f"Threshold: {dynamic_threshold:.2f} {'(Rotated+Sec)' if rotation_used else '(Base+Sec)'}"
-    draw_text_with_outline(vis, decision_text, (10, start_y + 2*line_spacing), font, font_scale, (255, 255, 0), thickness)
-    
-    # Ground Truth vs Prediction
-    gt_text = f"GT: {'SAME' if is_same_person else 'DIFFERENT'}"
-    pred_text = f"Pred: {'SAME' if predicted_same else 'DIFFERENT'}"
-    
-    # Color determination
-    correct_prediction = is_same_person == predicted_same
-    color = (0, 255, 0) if correct_prediction else (0, 0, 255)
-    
-    draw_text_with_outline(vis, gt_text, (10, start_y + 3*line_spacing), font, font_scale, (255, 255, 255), thickness)
-    draw_text_with_outline(vis, pred_text, (10, start_y + 4*line_spacing), font, font_scale, color, thickness)
-    
-    # Result
-    accuracy_text = f"Result: {'CORRECT' if correct_prediction else 'WRONG'}"
-    draw_text_with_outline(vis, accuracy_text, (10, start_y + 5*line_spacing), font, font_scale, color, thickness)
-
-    # Save
+    # Kaydet
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    cv2.imwrite(save_path, vis)
+    cv2.imwrite(save_path, vis_with_text)
 
-    return ratio, valid, total, result['angle'], processing_time, dynamic_threshold, rotation_used, security_analysis
-
-def calculate_security_score(results_by_angle, final_result):
-    """Calculate advanced security score to detect potential forgeries"""
-    
-    # Base metrics
-    ratio = final_result['ratio']
-    valid_matches = final_result['valid']
-    total_kpts = final_result['total']
-    
-    # 1. Quality over quantity check
-    if valid_matches > 0:
-        quality_score = min(1.0, valid_matches / max(total_kpts * 0.1, 1))  # Ideal: 10% strong matches
-    else:
-        quality_score = 0.0
-    
-    # 2. Suspicious pattern detection
-    suspicious_penalty = 0.0
-    
-    # Too many matches might indicate forgery attempt
-    if ratio > 0.15 and valid_matches > 30:
-        suspicious_penalty += 0.2  # High match count penalty
-    
-    # Multiple angles with similar high ratios = suspicious
-    high_ratio_angles = [r for r in results_by_angle if r['ratio'] > 0.08]
-    if len(high_ratio_angles) > 3:
-        suspicious_penalty += 0.15  # Multiple high angles penalty
-    
-    # Very high ratio with low keypoints = suspicious
-    if ratio > 0.2 and total_kpts < 15:
-        suspicious_penalty += 0.25  # Low complexity penalty
-    
-    # 3. Calculate final security score
-    security_score = quality_score * (1.0 - suspicious_penalty)
-    security_score = max(0.0, min(1.0, security_score))  # Clamp between 0-1
-    
-    return {
-        'security_score': security_score,
-        'quality_score': quality_score,
-        'suspicious_penalty': suspicious_penalty,
-        'risk_level': 'HIGH' if suspicious_penalty > 0.3 else 'MEDIUM' if suspicious_penalty > 0.1 else 'LOW'
-    }
+    return (result['ratio'], result['valid_matches'], result['total_keypoints'], 
+            result['rotation_angle'], result['processing_time'], result['threshold'], 
+            result['rotation_used'], result['security_analysis'])
 
 # 3) Get only numeric folders
 orig_folders = [
@@ -253,10 +91,11 @@ proc_folders = [
     if os.path.isdir(os.path.join(proc_root, d)) and d.isdigit()
 ]
 
-print("Starting SMART rotation-augmented signature matching...")
+print("Starting SMART rotation-augmented signature matching with K-MEANS preprocessing...")
 print(f"Base threshold: {base_threshold}")
 print(f"Rotation threshold: {rotation_threshold}")
 print(f"Rotation improvement threshold: {rotation_improvement_threshold}")
+print(f"Preprocessing: K-means clustering (noktalı kağıt temizleme)")
 print(f"Strategy: Use rotation only if it improves significantly, with stricter threshold")
 
 # Track total processing time
