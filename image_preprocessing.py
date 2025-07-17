@@ -1,70 +1,10 @@
 """
-Imza görüntülerini ön işleme modülü
-Noktalı kağıt arka planını temizler ve imza kalitesini artırır
+İmza görüntülerini ön işleme modülü - K-means Odaklı
+Noktalı kağıt arka planını K-means clustering ile temizler
 """
 
 import cv2
 import numpy as np
-from sklearn.cluster import KMeans
-
-def remove_dotted_background(image, debug=False):
-    """
-    Noktalı kağıt arka planını kaldırır ve imzayı öne çıkarır
-    
-    Args:
-        image: Gri seviye görüntü
-        debug: Debug modunda ara adımları gösterir
-    
-    Returns:
-        Temizlenmiş görüntü
-    """
-    # Orijinal görüntüyü kopyala
-    original = image.copy()
-    
-    # 1. Gaussian Blur ile küçük noktaları yumuşat
-    blurred = cv2.GaussianBlur(image, (3, 3), 0)
-    
-    # 2. Morphological opening ile küçük noktaları kaldır
-    kernel_small = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
-    opened = cv2.morphologyEx(blurred, cv2.MORPH_OPEN, kernel_small)
-    
-    # 3. Adaptive thresholding ile imza bölgelerini belirle
-    adaptive_thresh = cv2.adaptiveThreshold(
-        opened, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-        cv2.THRESH_BINARY, 11, 2
-    )
-    
-    # 4. Büyük yapıları koruyarak küçük gürültüyü kaldır
-    kernel_large = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    cleaned = cv2.morphologyEx(adaptive_thresh, cv2.MORPH_CLOSE, kernel_large)
-    
-    # 5. Median filter ile son gürültü temizliği
-    final_cleaned = cv2.medianBlur(cleaned, 3)
-    
-    if debug:
-        return {
-            'original': original,
-            'blurred': blurred,
-            'opened': opened,
-            'adaptive_thresh': adaptive_thresh,
-            'cleaned': cleaned,
-            'final': final_cleaned
-        }
-    
-    return final_cleaned
-
-def enhance_signature_contrast(image):
-    """
-    İmza kontrastını artırır ve arka planı beyazlatır
-    """
-    # CLAHE (Contrast Limited Adaptive Histogram Equalization) uygula
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-    enhanced = clahe.apply(image)
-    
-    # Histogram normalizasyonu
-    normalized = cv2.normalize(enhanced, None, 0, 255, cv2.NORM_MINMAX)
-    
-    return normalized
 
 def remove_background_noise_kmeans(image, n_clusters=3):
     """
@@ -109,7 +49,7 @@ def advanced_signature_preprocessing(image, method='kmeans'):
     
     Args:
         image: Giriş görüntüsü (BGR veya gri seviye)
-        method: 'kmeans' (önerilen), 'adaptive', 'combined'
+        method: 'kmeans' (önerilen ve ana yöntem)
     
     Returns:
         Temizlenmiş gri seviye görüntü
@@ -121,95 +61,19 @@ def advanced_signature_preprocessing(image, method='kmeans'):
         gray = image.copy()
     
     if method == 'kmeans':
-        # K-means tabanlı arka plan kaldırma (EN ETKİLİ YÖNTEM)
+        # K-means tabanlı arka plan kaldırma (ANA YÖNTEM)
         processed = remove_background_noise_kmeans(gray)
-        
-    elif method == 'adaptive':
-        # Adaptive thresholding tabanlı temizlik
-        processed = remove_dotted_background(gray)
-        
-    elif method == 'combined':
-        # Kombine yaklaşım
-        # Önce kontrast artırma
-        enhanced = enhance_signature_contrast(gray)
-        # Sonra adaptive temizlik
-        processed = remove_dotted_background(enhanced)
-        
     else:
-        raise ValueError("Method must be 'kmeans', 'adaptive', or 'combined'")
+        # Geçmişte diğer yöntemler vardı, şimdi sadece K-means kullanılıyor
+        print(f"Uyarı: '{method}' yöntemi desteklenmiyor. K-means kullanılıyor.")
+        processed = remove_background_noise_kmeans(gray)
     
     return processed
 
-def visualize_preprocessing_steps(image, save_path=None):
-    """
-    Ön işleme adımlarını görselleştirir
-    """
-    # Gri seviyeye çevir
-    if len(image.shape) == 3:
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    else:
-        gray = image.copy()
-    
-    # Farklı yöntemleri uygula
-    steps = remove_dotted_background(gray, debug=True)
-    enhanced = enhance_signature_contrast(gray)
-    kmeans_result = remove_background_noise_kmeans(gray)
-    combined_result = advanced_signature_preprocessing(gray, method='combined')
-    
-    # Görselleştirme için birleştir
-    row1 = np.hstack([steps['original'], steps['blurred'], steps['opened']])
-    row2 = np.hstack([enhanced, kmeans_result, combined_result])
-    
-    # Başlıklar ekle
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    cv2.putText(row1, 'Original', (10, 30), font, 0.7, (0, 0, 0), 2)
-    cv2.putText(row1, 'Blurred', (gray.shape[1] + 10, 30), font, 0.7, (0, 0, 0), 2)
-    cv2.putText(row1, 'Opened', (2*gray.shape[1] + 10, 30), font, 0.7, (0, 0, 0), 2)
-    
-    cv2.putText(row2, 'Enhanced', (10, 30), font, 0.7, (0, 0, 0), 2)
-    cv2.putText(row2, 'K-means', (gray.shape[1] + 10, 30), font, 0.7, (0, 0, 0), 2)
-    cv2.putText(row2, 'Combined', (2*gray.shape[1] + 10, 30), font, 0.7, (0, 0, 0), 2)
-    
-    final_viz = np.vstack([row1, row2])
-    
-    if save_path:
-        cv2.imwrite(save_path, final_viz)
-    
-    return final_viz
-
-# Test fonksiyonu
-def test_preprocessing(image_path, output_dir="preprocessing_test"):
-    """
-    Ön işleme fonksiyonlarını test eder
-    """
-    import os
-    
-    # Görüntüyü yükle
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    if image is None:
-        print(f"Görüntü yüklenemedi: {image_path}")
-        return
-    
-    # Output dizinini oluştur
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Farklı yöntemleri test et
-    methods = ['adaptive', 'kmeans', 'combined']
-    
-    for method in methods:
-        processed = advanced_signature_preprocessing(image, method=method)
-        output_path = os.path.join(output_dir, f"processed_{method}.png")
-        cv2.imwrite(output_path, processed)
-        print(f"Kaydedildi: {output_path}")
-    
-    # Adım adım görselleştirme
-    viz_path = os.path.join(output_dir, "preprocessing_steps.png")
-    visualize_preprocessing_steps(image, viz_path)
-    print(f"Görselleştirme kaydedildi: {viz_path}")
-
 if __name__ == "__main__":
     # Test için örnek kullanım
-    print("İmza ön işleme modülü hazır!")
+    print("🎯 K-means Odaklı İmza Ön İşleme Modülü Hazır!")
     print("Kullanım:")
     print("from image_preprocessing import advanced_signature_preprocessing")
-    print("processed_image = advanced_signature_preprocessing(image, method='combined')")
+    print("processed_image = advanced_signature_preprocessing(image, method='kmeans')")
+    print("\n✨ Noktalı kağıt arka planları otomatik olarak temizlenir!")
