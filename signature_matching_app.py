@@ -10,7 +10,7 @@ from signature_analysis import analyze_signatures_with_rotation, create_visualiz
 
 # Configure Streamlit page
 st.set_page_config(
-    page_title="İmza Eşleştirme Sistemi",
+    page_title="Signature Matching System",
     page_icon="✍️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -227,10 +227,10 @@ createParticles();
 st.markdown('''
 <div class="main-header">
     <h1 style="margin: 0; font-size: 3em; font-weight: 700;">
-        🖋️ İmza Eşleştirme Sistemi
+        🖋️ Signature Matching System
     </h1>
     <p style="margin: 10px 0 0 0; font-size: 1.2em; opacity: 0.9;">
-        ✨ Yapay Zeka Destekli SuperGlue Teknolojisi ✨
+        ✨ AI-Powered SuperGlue Technology ✨
     </p>
 </div>
 ''', unsafe_allow_html=True)
@@ -256,24 +256,24 @@ def analyze_signatures(im1, im2, matching, device, use_rotation=True, use_prepro
 # Sidebar controls with enhanced styling
 st.sidebar.markdown("""
 <div style="text-align: center; padding: 20px 0;">
-    <h2 style="color: #667eea; font-family: 'Poppins', sans-serif;">⚙️ Kontrol Paneli</h2>
+    <h2 style="color: #667eea; font-family: 'Poppins', sans-serif;">⚙️ Control Panel</h2>
 </div>
 """, unsafe_allow_html=True)
 
 # Model loading status with style
 with st.sidebar:
-    with st.spinner("🤖 AI Model yükleniyor..."):
+    with st.spinner("🤖 Loading AI Model..."):
         matching, device = load_model()
-    
+
     st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); 
-                padding: 15px; 
-                border-radius: 10px; 
-                text-align: center; 
+    <div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+                padding: 15px;
+                border-radius: 10px;
+                text-align: center;
                 margin: 10px 0;">
-        <h4 style="margin: 0; color: #2c3e50;">✅ Model Hazır!</h4>
+        <h4 style="margin: 0; color: #2c3e50;">✅ Model Ready!</h4>
         <p style="margin: 5px 0 0 0; color: #34495e; font-weight: bold;">
-            🚀 {device.upper()} Aceleration
+            🚀 {device.upper()} Acceleration
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -283,40 +283,40 @@ with st.sidebar:
     # Enhanced settings
     st.markdown("""
     <div style="text-align: center; margin: 15px 0;">
-        <h4 style="color: #667eea;">🎛️ Analiz Ayarları</h4>
+        <h4 style="color: #667eea;">🎛️ Analysis Settings</h4>
     </div>
     """, unsafe_allow_html=True)
-    
+
     use_rotation = st.checkbox(
-        "🔄 Rotasyon analizi kullan", 
-        value=True, 
-        help="İmzaları farklı açılarda döndürerek analiz eder"
+        "🔄 Use rotation analysis",
+        value=True,
+        help="Analyzes signatures by rotating them at different angles"
     )
-    
+
     use_preprocessing = st.checkbox(
-        "🧹 K-means ön işleme kullan", 
-        value=True, 
-        help="Noktalı kağıt arka planını K-means ile temizler"
+        "🧹 Use K-means preprocessing",
+        value=True,
+        help="Cleans dotted paper background using K-means"
     )
-    
+
     show_all_angles = st.checkbox(
-        "📊 Tüm açıları göster", 
-        value=True, 
-        help="Her rotasyon açısının sonuçlarını gösterir"
+        "📊 Show all angles",
+        value=True,
+        help="Displays results for each rotation angle"
     )
     
     st.markdown("---")
     
     # Add performance info
     st.markdown("""
-    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                color: white; 
-                padding: 15px; 
-                border-radius: 10px; 
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 15px;
+                border-radius: 10px;
                 text-align: center;">
-        <h4 style="margin: 0 0 10px 0;">📈 Sistem Performansı</h4>
-        <p style="margin: 5px 0; font-size: 0.9em;">⚡ Hız: ~2-3 saniye (GPU)</p>
-        <p style="margin: 5px 0; font-size: 0.9em;">🔄 8 farklı açı analizi</p>
+        <h4 style="margin: 0 0 10px 0;">📈 System Performance</h4>
+        <p style="margin: 5px 0; font-size: 0.9em;">⚡ Speed: ~2-3 seconds (GPU)</p>
+        <p style="margin: 5px 0; font-size: 0.9em;">🔄 8 different angle analysis</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -326,66 +326,66 @@ col1, col2 = st.columns(2)
 with col1:
     st.markdown("""
     <div class="upload-zone">
-        <h3 style="color: #667eea; margin-bottom: 15px;">📄 İlk İmza</h3>
-        <p style="color: #666; margin-bottom: 20px;">Referans imza dosyasını yükleyin</p>
+        <h3 style="color: #667eea; margin-bottom: 15px;">📄 First Signature</h3>
+        <p style="color: #666; margin-bottom: 20px;">Upload reference signature file</p>
     </div>
     """, unsafe_allow_html=True)
-    
+
     uploaded_file1 = st.file_uploader(
-        "İlk imza dosyasını yükleyin",
+        "Upload first signature file",
         type=['png', 'jpg', 'jpeg'],
         key="file1",
         label_visibility="collapsed"
     )
-    
+
     if uploaded_file1:
         image1 = Image.open(uploaded_file1)
-        st.image(image1, caption="✅ İlk İmza Yüklendi", use_column_width=True)
-        st.success("📤 Dosya başarıyla yüklendi!")
+        st.image(image1, caption="✅ First Signature Uploaded", use_column_width=True)
+        st.success("📤 File uploaded successfully!")
 
 with col2:
     st.markdown("""
     <div class="upload-zone">
-        <h3 style="color: #667eea; margin-bottom: 15px;">📄 İkinci İmza</h3>
-        <p style="color: #666; margin-bottom: 20px;">Karşılaştırılacak imza dosyasını yükleyin</p>
+        <h3 style="color: #667eea; margin-bottom: 15px;">📄 Second Signature</h3>
+        <p style="color: #666; margin-bottom: 20px;">Upload signature file to compare</p>
     </div>
     """, unsafe_allow_html=True)
-    
+
     uploaded_file2 = st.file_uploader(
-        "İkinci imza dosyasını yükleyin",
+        "Upload second signature file",
         type=['png', 'jpg', 'jpeg'],
         key="file2",
         label_visibility="collapsed"
     )
-    
+
     if uploaded_file2:
         image2 = Image.open(uploaded_file2)
-        st.image(image2, caption="✅ İkinci İmza Yüklendi", use_column_width=True)
-        st.success("📤 Dosya başarıyla yüklendi!")
+        st.image(image2, caption="✅ Second Signature Uploaded", use_column_width=True)
+        st.success("📤 File uploaded successfully!")
 
 # Analysis button with enhanced styling
 if uploaded_file1 and uploaded_file2:
     st.markdown("""
     <div style="text-align: center; margin: 30px 0;">
         <h3 style="color: #667eea; font-family: 'Poppins', sans-serif;">
-            🎯 Her şey hazır! Analizi başlatalım
+            🎯 Everything is ready! Let's start the analysis
         </h3>
     </div>
     """, unsafe_allow_html=True)
-    
+
     # Center the button
     col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
     with col_btn2:
         analyze_button = st.button(
-            "🔍 İmzaları Analiz Et", 
-            type="primary", 
+            "🔍 Analyze Signatures",
+            type="primary",
             use_container_width=True,
-            help="AI algoritması ile imzaları karşılaştırır"
+            help="Compares signatures using AI algorithm"
         )
     
     if analyze_button:
-        
-        with st.spinner("İmzalar analiz ediliyor..."):
+
+        with st.spinner("Analyzing signatures..."):
             # Convert PIL to OpenCV format safely
             img1_array = np.array(image1)
             img2_array = np.array(image2)
@@ -421,64 +421,64 @@ if uploaded_file1 and uploaded_file2:
         
         # Display results
         st.markdown("---")
-        st.subheader("📊 Analiz Sonuçları")
-        
+        st.subheader("📊 Analysis Results")
+
         # Main result box
         if result['predicted_same']:
             st.markdown(f"""
             <div class="result-box match-positive">
-                <h3>✅ EŞLEŞME TESPİT EDİLDİ</h3>
-                <p><strong>Eşleşme Oranı:</strong> {result['ratio']*100:.1f}%</p>
-                <p><strong>Eşik Değer:</strong> {result['threshold']*100:.1f}%</p>
+                <h3>✅ MATCH DETECTED</h3>
+                <p><strong>Match Ratio:</strong> {result['ratio']*100:.1f}%</p>
+                <p><strong>Threshold Value:</strong> {result['threshold']*100:.1f}%</p>
             </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
             <div class="result-box match-negative">
-                <h3>❌ EŞLEŞME TESPİT EDİLMEDİ</h3>
-                <p><strong>Eşleşme Oranı:</strong> {result['ratio']*100:.1f}%</p>
-                <p><strong>Eşik Değer:</strong> {result['threshold']*100:.1f}%</p>
+                <h3>❌ NO MATCH DETECTED</h3>
+                <p><strong>Match Ratio:</strong> {result['ratio']*100:.1f}%</p>
+                <p><strong>Threshold Value:</strong> {result['threshold']*100:.1f}%</p>
             </div>
             """, unsafe_allow_html=True)
         
         # Detailed statistics with beautiful cards
         col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
-        
+
         with col_stat1:
             st.markdown(f"""
             <div class="metric-card">
                 <h3 style="margin: 0; font-size: 2em;">🎯</h3>
                 <h2 style="margin: 5px 0;">{result['valid_matches']}</h2>
-                <p style="margin: 0; opacity: 0.9;">Eşleşme Sayısı</p>
+                <p style="margin: 0; opacity: 0.9;">Match Count</p>
             </div>
             """, unsafe_allow_html=True)
-        
+
         with col_stat2:
             st.markdown(f"""
             <div class="metric-card">
                 <h3 style="margin: 0; font-size: 2em;">🔘</h3>
                 <h2 style="margin: 5px 0;">{result['total_keypoints']}</h2>
-                <p style="margin: 0; opacity: 0.9;">Toplam Nokta</p>
+                <p style="margin: 0; opacity: 0.9;">Total Points</p>
             </div>
             """, unsafe_allow_html=True)
-        
+
         with col_stat3:
-            rotation_text = f"{result['rotation_angle']}°" if result['rotation_used'] else "Yok"
+            rotation_text = f"{result['rotation_angle']}°" if result['rotation_used'] else "None"
             rotation_emoji = "🔄" if result['rotation_used'] else "🔒"
             st.markdown(f"""
             <div class="metric-card">
                 <h3 style="margin: 0; font-size: 2em;">{rotation_emoji}</h3>
                 <h2 style="margin: 5px 0;">{rotation_text}</h2>
-                <p style="margin: 0; opacity: 0.9;">Rotasyon</p>
+                <p style="margin: 0; opacity: 0.9;">Rotation</p>
             </div>
             """, unsafe_allow_html=True)
-        
+
         with col_stat4:
             st.markdown(f"""
             <div class="metric-card">
                 <h3 style="margin: 0; font-size: 2em;">⏱️</h3>
                 <h2 style="margin: 5px 0;">{processing_time:.2f}s</h2>
-                <p style="margin: 0; opacity: 0.9;">İşlem Süresi</p>
+                <p style="margin: 0; opacity: 0.9;">Processing Time</p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -486,10 +486,10 @@ if uploaded_file1 and uploaded_file2:
         st.markdown("""
         <div style="text-align: center; margin: 30px 0;">
             <h3 style="color: #667eea; font-family: 'Poppins', sans-serif;">
-                🎨 Görsel Analiz - Eşleşen Noktalar
+                🎨 Visual Analysis - Matching Points
             </h3>
             <p style="color: #666; margin-bottom: 20px;">
-                Yeşil çizgiler başarılı eşleştirmeleri gösterir (K-means ön işlemeli)
+                Green lines show successful matches (K-means preprocessed)
             </p>
         </div>
         """, unsafe_allow_html=True)
@@ -502,37 +502,37 @@ if uploaded_file1 and uploaded_file2:
         # Add a progress bar for visual appeal
         if result['predicted_same']:
             st.progress(result['ratio'])
-            st.markdown(f"<p style='text-align: center; color: #28a745; font-weight: bold;'>✨ Eşleşme Güven Skoru: {result['ratio']*100:.1f}% ✨</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align: center; color: #28a745; font-weight: bold;'>✨ Match Confidence Score: {result['ratio']*100:.1f}% ✨</p>", unsafe_allow_html=True)
         else:
             st.progress(result['ratio'])
-            st.markdown(f"<p style='text-align: center; color: #dc3545; font-weight: bold;'>⚠️ Eşleşme Skoru: {result['ratio']*100:.1f}% (Yetersiz) ⚠️</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align: center; color: #dc3545; font-weight: bold;'>⚠️ Match Score: {result['ratio']*100:.1f}% (Insufficient) ⚠️</p>", unsafe_allow_html=True)
         
         # Show all rotation results if requested
         if show_all_angles and use_rotation:
-            st.subheader("📊 Tüm Rotasyon Sonuçları")
-            
+            st.subheader("📊 All Rotation Results")
+
             angles_data = []
             for res in result['all_results']:
                 angles_data.append({
-                    'Açı': f"{res['angle']}°",
-                    'Eşleşme Oranı': f"{res['ratio']*100:.1f}%",
-                    'Eşleşme Sayısı': res['valid'],
-                    'Toplam Nokta': res['total']
+                    'Angle': f"{res['angle']}°",
+                    'Match Ratio': f"{res['ratio']*100:.1f}%",
+                    'Match Count': res['valid'],
+                    'Total Points': res['total']
                 })
-            
+
             st.dataframe(angles_data, use_container_width=True)
         
         # Additional info box
         st.markdown(f"""
         <div class="stats-box">
-            <h4>ℹ️ Analiz Detayları</h4>
+            <h4>ℹ️ Analysis Details</h4>
             <ul>
-                <li><strong>Ön İşleme:</strong> {'K-means uygulandı' if use_preprocessing else 'Kullanılmadı'}</li>
-                <li><strong>Rotasyon Stratejisi:</strong> {'Kullanıldı' if result['rotation_used'] else 'Kullanılmadı'}</li>
-                <li><strong>En İyi Açı:</strong> {result['rotation_angle']}°</li>
-                <li><strong>Güvenlik Riski:</strong> {result['security_analysis']['risk_level']}</li>
-                <li><strong>Güvenilirlik:</strong> {'Yüksek' if result['total_keypoints'] >= 20 else 'Orta'}</li>
-                <li><strong>Eşik Değer:</strong> {result['threshold']*100:.1f}%</li>
+                <li><strong>Preprocessing:</strong> {'K-means applied' if use_preprocessing else 'Not used'}</li>
+                <li><strong>Rotation Strategy:</strong> {'Used' if result['rotation_used'] else 'Not used'}</li>
+                <li><strong>Best Angle:</strong> {result['rotation_angle']}°</li>
+                <li><strong>Security Risk:</strong> {result['security_analysis']['risk_level']}</li>
+                <li><strong>Reliability:</strong> {'High' if result['total_keypoints'] >= 20 else 'Medium'}</li>
+                <li><strong>Threshold Value:</strong> {result['threshold']*100:.1f}%</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -542,10 +542,10 @@ else:
     st.markdown("""
     <div style="text-align: center; margin: 40px 0;">
         <h2 style="color: #667eea; font-family: 'Poppins', sans-serif;">
-            👆 Lütfen analiz etmek istediğiniz iki imza dosyasını yükleyin
+            👆 Please upload two signature files you want to analyze
         </h2>
         <p style="color: #666; font-size: 1.1em; margin: 20px 0;">
-            Desteklenen formatlar: PNG, JPG, JPEG
+            Supported formats: PNG, JPG, JPEG
         </p>
     </div>
     """, unsafe_allow_html=True)
