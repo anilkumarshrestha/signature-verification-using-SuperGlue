@@ -1,6 +1,6 @@
 """
-İmza görüntülerini ön işleme modülü - K-means Odaklı
-Noktalı kağıt arka planını K-means clustering ile temizler
+Signature image preprocessing module - K-means Focused
+Cleans dotted paper backgrounds using K-means clustering
 """
 
 import cv2
@@ -8,35 +8,35 @@ import numpy as np
 
 def remove_background_noise_kmeans(image, n_clusters=3):
     """
-    K-means clustering ile arka plan gürültüsünü kaldırır
-    NOKTALARI KAĞIT İÇİN EN ETKİLİ YÖNTEM!
-    
+    Removes background noise using K-means clustering
+    MOST EFFECTIVE METHOD FOR DOTTED PAPER!
+
     Args:
-        image: Gri seviye görüntü
-        n_clusters: Küme sayısı (3 = arka plan + imza + geçiş)
-    
+        image: Grayscale image
+        n_clusters: Number of clusters (3 = background + signature + transition)
+
     Returns:
-        Temizlenmiş binary görüntü (siyah imza, beyaz arka plan)
+        Cleaned binary image (black signature, white background)
     """
-    # Görüntüyü reshape et
+    # Reshape the image
     data = image.reshape((-1, 1))
     data = np.float32(data)
-    
-    # K-means clustering - daha stabil sonuç için parametreler optimize edildi
+
+    # K-means clustering - parameters optimized for more stable results
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 1.0)
     _, labels, centers = cv2.kmeans(data, n_clusters, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
-    
-    # Centers'ı sırala (en koyu = imza, en açık = arka plan)
+
+    # Sort centers (darkest = signature, lightest = background)
     centers = centers.flatten()
     sorted_indices = np.argsort(centers)
-    
-    # En koyu cluster'ı imza olarak kabul et
-    signature_label = sorted_indices[0]  # En düşük intensite = en koyu = imza
-    
-    # İmzayı siyah (0), arka planı beyaz (255) yap
+
+    # Accept the darkest cluster as signature
+    signature_label = sorted_indices[0]  # Lowest intensity = darkest = signature
+
+    # Make signature black (0), background white (255)
     result = np.where(labels.reshape(image.shape) == signature_label, 0, 255).astype(np.uint8)
-    
-    # Küçük gürültüleri temizle
+
+    # Clean small noise
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
     result = cv2.morphologyEx(result, cv2.MORPH_OPEN, kernel)
     
@@ -44,36 +44,36 @@ def remove_background_noise_kmeans(image, n_clusters=3):
 
 def advanced_signature_preprocessing(image, method='kmeans'):
     """
-    Gelişmiş imza ön işleme ana fonksiyonu
-    K-means yöntemi varsayılan olarak kullanılır (en etkili sonuç)
-    
+    Advanced signature preprocessing main function
+    K-means method is used by default (most effective result)
+
     Args:
-        image: Giriş görüntüsü (BGR veya gri seviye)
-        method: 'kmeans' (önerilen ve ana yöntem)
-    
+        image: Input image (BGR or grayscale)
+        method: 'kmeans' (recommended and main method)
+
     Returns:
-        Temizlenmiş gri seviye görüntü
+        Cleaned grayscale image
     """
-    # BGR ise gri seviyeye çevir
+    # Convert to grayscale if BGR
     if len(image.shape) == 3:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     else:
         gray = image.copy()
-    
+
     if method == 'kmeans':
-        # K-means tabanlı arka plan kaldırma (ANA YÖNTEM)
+        # K-means based background removal (MAIN METHOD)
         processed = remove_background_noise_kmeans(gray)
     else:
-        # Geçmişte diğer yöntemler vardı, şimdi sadece K-means kullanılıyor
-        print(f"Uyarı: '{method}' yöntemi desteklenmiyor. K-means kullanılıyor.")
+        # Other methods existed in the past, now only K-means is used
+        print(f"Warning: '{method}' method is not supported. Using K-means.")
         processed = remove_background_noise_kmeans(gray)
     
     return processed
 
 if __name__ == "__main__":
-    # Test için örnek kullanım
-    print("🎯 K-means Odaklı İmza Ön İşleme Modülü Hazır!")
-    print("Kullanım:")
+    # Sample usage for testing
+    print("K-means Focused Signature Preprocessing Module Ready!")
+    print("Usage:")
     print("from image_preprocessing import advanced_signature_preprocessing")
     print("processed_image = advanced_signature_preprocessing(image, method='kmeans')")
-    print("\n✨ Noktalı kağıt arka planları otomatik olarak temizlenir!")
+    print("\nDotted paper backgrounds are automatically cleaned!")

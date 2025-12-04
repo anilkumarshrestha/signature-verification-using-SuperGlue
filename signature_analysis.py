@@ -1,6 +1,6 @@
 """
-Ortak İmza Analiz Modülü
-Bu modül hem improved_rotation_strategy.py hem de signature_matching_app.py tarafından kullanılır
+Common Signature Analysis Module
+This module is used by both improved_rotation_strategy.py and signature_matching_app.py
 """
 
 import cv2
@@ -66,27 +66,27 @@ def analyze_signatures_with_rotation(im1, im2, matching, device,
                                    use_preprocessing=True,
                                    preprocessing_method='kmeans'):
     """
-    Ana imza analiz fonksiyonu - hem CLI hem de Streamlit'te kullanılır
-    
+    Main signature analysis function - used in both CLI and Streamlit
+
     Args:
-        im1, im2: Gri seviye görüntüler
+        im1, im2: Grayscale images
         matching: SuperGlue model
-        device: 'cuda' veya 'cpu'
-        base_threshold: Temel eşik değer
-        rotation_threshold: Rotasyon eşik değer
-        rotation_improvement_threshold: Rotasyon gelişim eşiği
-        use_rotation: Rotasyon kullanılsın mı
-        use_preprocessing: Ön işleme yapılsın mı (K-means)
-        preprocessing_method: Ön işleme yöntemi
-    
+        device: 'cuda' or 'cpu'
+        base_threshold: Base threshold value
+        rotation_threshold: Rotation threshold value
+        rotation_improvement_threshold: Rotation improvement threshold
+        use_rotation: Whether to use rotation
+        use_preprocessing: Whether to apply preprocessing (K-means)
+        preprocessing_method: Preprocessing method
+
     Returns:
-        Detaylı analiz sonuçları
+        Detailed analysis results
     """
     start_time = time.time()
     
-    # GÖRÜNTÜ ÖN İŞLEME - K-means ile noktalı kağıt arka planını temizle
+    # IMAGE PREPROCESSING - Clean dotted paper background with K-means
     if use_preprocessing:
-        print(f"K-means ön işleme uygulanıyor...")
+        print(f"Applying K-means preprocessing...")
         im1_processed = advanced_signature_preprocessing(im1, method=preprocessing_method)
         im2_processed = advanced_signature_preprocessing(im2, method=preprocessing_method)
     else:
@@ -214,7 +214,7 @@ def analyze_signatures_with_rotation(im1, im2, matching, device,
 
 def create_visualization(result):
     """
-    Analiz sonucundan görselleştirme oluştur
+    Create visualization from analysis result
     """
     kpts0 = result['keypoints0']
     kpts1 = result['keypoints1']
@@ -241,7 +241,7 @@ def create_visualization(result):
 
 def add_text_overlay(vis, result, ground_truth_same=None):
     """
-    Görselleştirmeye metin bilgilerini ekle
+    Add text information to visualization
     """
     # Text settings
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -297,10 +297,10 @@ def add_text_overlay(vis, result, ground_truth_same=None):
     
     return vis
 
-# Model loading fonksiyonu
+# Model loading function
 def load_superglue_model():
     """
-    SuperGlue modelini yükle - singleton pattern
+    Load SuperGlue model - singleton pattern
     """
     from models.matching import Matching
     
